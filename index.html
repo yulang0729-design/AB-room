@@ -1,1723 +1,3783 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ZERO日本語・日本留学 - 工作台</title>
-    <!-- 引入 Supabase 官方 SDK -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <style>
-        :root {
-            --primary-orange: #e67e22;
-            --primary-orange-light: #fdf6ec;
-            --bg-color: #fcf8f2;
-            --card-bg: #ffffff;
-            --text-main: #2c3e50;
-            --text-muted: #7f8c8d;
-            --border-color: #f3e5d8;
-            --holiday-bg: #f1f2f6;
-            --holiday-text: #a4b0be;
-        }
-
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
-        }
-
-        body {
-            background-color: var(--bg-color);
-            color: var(--text-main);
-            padding: 24px;
-            max-width: 1600px;
-            margin: 0 auto;
-        }
-
-        header {
-            margin-bottom: 24px;
-            padding-bottom: 16px;
-            border-bottom: 2px solid var(--border-color);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 12px;
-        }
-
-        h1 {
-            font-size: 24px;
-            color: var(--primary-orange);
-            font-weight: 700;
-        }
-
-        .header-right {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            flex-wrap: wrap;
-        }
-
-        .sync-badge {
-            font-size: 13px;
-            background: #ecfdf5;
-            color: #059669;
-            padding: 6px 14px;
-            border-radius: 20px;
-            font-weight: 600;
-            border: 1px solid #a7f3d0;
-        }
-
-        .timezone-badge {
-            font-size: 13px;
-            background: #fae5d3;
-            color: var(--primary-orange);
-            padding: 6px 14px;
-            border-radius: 20px;
-            font-weight: 600;
-        }
-
-        .grid-container {
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 24px;
-        }
-
-        .card {
-            background: var(--card-bg);
-            border-radius: 12px;
-            padding: 20px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.03);
-            border: 1px solid var(--border-color);
-        }
-
-        .card-title {
-            font-size: 18px;
-            font-weight: 600;
-            margin-bottom: 16px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            color: var(--primary-orange);
-        }
-
-        /* 板块 1：倒计时样式 */
-        .countdown-form {
-            display: flex;
-            gap: 12px;
-            margin-bottom: 16px;
-            flex-wrap: wrap;
-            align-items: center;
-            background: #fffcf7;
-            padding: 14px;
-            border-radius: 8px;
-            border: 1px dashed #fabe8a;
-        }
-
-        .countdown-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-            gap: 16px;
-        }
-
-        .countdown-item {
-            background: #fffcf7;
-            padding: 16px;
-            border-radius: 8px;
-            border: 1px solid var(--border-color);
-            position: relative;
-        }
-
-        .countdown-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 8px;
-        }
-
-        .countdown-item h3 {
-            font-size: 15px;
-            color: var(--text-main);
-            font-weight: 600;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-            padding-right: 8px;
-        }
-
-        .countdown-target-time {
-            font-size: 12px;
-            color: var(--text-muted);
-            margin-bottom: 10px;
-        }
-
-        .timer-display {
-            font-size: 18px;
-            font-weight: 700;
-            color: var(--primary-orange);
-            text-align: center;
-            padding: 8px 0;
-            background: #ffffff;
-            border-radius: 6px;
-            border: 1px dashed var(--primary-orange);
-        }
-
-        .countdown-del-btn {
-            color: #ef4444;
-            cursor: pointer;
-            font-weight: bold;
-            font-size: 14px;
-            padding: 2px 6px;
-            border-radius: 4px;
-            background: #fee2e2;
-            border: none;
-        }
-
-        .countdown-del-btn:hover {
-            background: #fca5a5;
-        }
-
-        input[type="datetime-local"], input[type="text"], input[type="number"], input[type="date"], input[type="color"], select {
-            padding: 8px 12px;
-            border: 1px solid var(--border-color);
-            border-radius: 6px;
-            font-size: 14px;
-            outline: none;
-            background: #fff;
-        }
-
-        input[type="color"] {
-            padding: 2px 4px;
-            width: 44px;
-            height: 38px;
-            cursor: pointer;
-        }
-
-        input:focus, select:focus {
-            border-color: var(--primary-orange);
-        }
-
-        button {
-            background: var(--primary-orange);
-            color: white;
-            border: none;
-            padding: 8px 16px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: 500;
-            transition: opacity 0.2s;
-            white-space: nowrap;
-        }
-
-        button:hover {
-            opacity: 0.9;
-        }
-
-        .btn-secondary {
-            background: #7f8c8d;
-        }
-
-        .btn-secondary:disabled {
-            background: #bdc3c7;
-            cursor: not-allowed;
-            opacity: 0.6;
-        }
-
-        .btn-replan {
-            background: #0284c7;
-        }
-
-        .btn-replan:hover {
-            background: #0369a1;
-        }
-
-        .btn-rescue {
-            background: #e11d48;
-            font-size: 13px;
-            padding: 6px 12px;
-            font-weight: 700;
-        }
-
-        .btn-backup {
-            background: #475569;
-            font-size: 13px;
-            padding: 6px 12px;
-        }
-
-        /* 工具栏与里程碑样式 */
-        .panel-box {
-            background: #fffaf0;
-            border: 1px solid #fabe8a;
-            border-radius: 8px;
-            padding: 16px;
-            margin-bottom: 16px;
-        }
-
-        .panel-row {
-            display: flex;
-            gap: 12px;
-            align-items: center;
-            flex-wrap: wrap;
-        }
-
-        .panel-row label {
-            font-size: 14px;
-            font-weight: 600;
-        }
-
-        .weekday-checkboxes {
-            display: flex;
-            gap: 10px;
-            background: #fff;
-            padding: 6px 12px;
-            border-radius: 6px;
-            border: 1px solid var(--border-color);
-        }
-
-        .weekday-checkboxes label {
-            font-size: 13px;
-            font-weight: normal;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 4px;
-        }
-
-        .tag-list {
-            display: flex;
-            gap: 8px;
-            flex-wrap: wrap;
-            margin-top: 10px;
-        }
-
-        .tag-item {
-            background: #ffeaa7;
-            color: #d35400;
-            padding: 4px 10px;
-            border-radius: 12px;
-            font-size: 12px;
-            font-weight: 600;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-
-        .tag-item span {
-            cursor: pointer;
-            color: #e74c3c;
-        }
-
-        .class-badge {
-            padding: 5px 12px;
-            border-radius: 12px;
-            font-size: 12px;
-            font-weight: 600;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            border: 1px solid rgba(0,0,0,0.1);
-        }
-
-        .class-action-btn {
-            cursor: pointer;
-            font-size: 11px;
-            padding: 2px 6px;
-            border-radius: 4px;
-            background: rgba(0,0,0,0.15);
-            transition: background 0.15s;
-        }
-
-        .class-action-btn:hover {
-            background: rgba(0,0,0,0.3);
-        }
-
-        .milestone-summary-box {
-            background: #f0fdf4;
-            border: 1px solid #bbf7d0;
-            border-radius: 8px;
-            padding: 14px 16px;
-            margin-bottom: 16px;
-        }
-
-        .milestone-summary-title {
-            font-size: 15px;
-            font-weight: 700;
-            color: #166534;
-            margin-bottom: 8px;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-
-        .milestone-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-            gap: 10px;
-        }
-
-        .milestone-card {
-            background: #ffffff;
-            border: 1px solid #dcfce7;
-            border-left: 4px solid #16a34a;
-            padding: 8px 12px;
-            border-radius: 6px;
-            font-size: 13px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .milestone-card.type-开班 { border-left-color: #16a34a; }
-        .milestone-card.type-半期 { border-left-color: #eab308; }
-        .milestone-card.type-结课 { border-left-color: #dc2626; }
-
-        .milestone-tag-badge {
-            font-weight: 700;
-            padding: 2px 6px;
-            border-radius: 4px;
-            font-size: 11px;
-            color: #fff;
-        }
-
-        .badge-开班 { background: #16a34a; }
-        .badge-半期 { background: #eab308; }
-        .badge-结课 { background: #dc2626; }
-
-        .milestone-del-btn {
-            color: #ef4444;
-            cursor: pointer;
-            font-weight: bold;
-            margin-left: 6px;
-        }
-
-        .inline-badge-icon {
-            display: inline-flex;
-            align-items: center;
-            font-size: 10px;
-            font-weight: 700;
-            padding: 1px 4px;
-            border-radius: 4px;
-            color: #fff;
-            margin-left: 4px;
-            line-height: 1.2;
-            vertical-align: middle;
-            box-shadow: 0 1px 2px rgba(0,0,0,0.15);
-        }
-
-        /* 月历与双教室样式 */
-        .month-control-bar {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 16px;
-            flex-wrap: wrap;
-            gap: 10px;
-        }
-
-        .month-picker-group {
-            display: flex;
-            gap: 8px;
-            align-items: center;
-        }
-
-        .rooms-twin-container {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 24px;
-        }
-
-        @media (max-width: 1300px) {
-            .rooms-twin-container {
-                grid-template-columns: 1fr;
-            }
-        }
-
-        .room-box {
-            background: #fff;
-            border-radius: 8px;
-            border: 2px solid var(--primary-orange);
-            overflow: hidden;
-        }
-
-        .room-header {
-            background: var(--primary-orange);
-            color: white;
-            padding: 10px;
-            font-size: 20px;
-            font-weight: 700;
-            text-align: center;
-        }
-
-        .calendar-table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 12px;
-            text-align: center;
-            table-layout: fixed;
-        }
-
-        .calendar-table th, .calendar-table td {
-            border: 1px solid var(--border-color);
-            padding: 4px;
-        }
-
-        .calendar-table th {
-            background: #fdf3e7;
-            color: #d35400;
-            font-weight: 600;
-            height: 36px;
-        }
-
-        .calendar-table th.weekend {
-            background: #fae5d3;
-            color: #c0392b;
-        }
-
-        .day-cell {
-            height: 96px;
-            vertical-align: top;
-            background: #fff;
-        }
-
-        .day-cell.other-month {
-            background: #fafafa;
-            opacity: 0.4;
-        }
-
-        .day-cell.is-holiday {
-            background: var(--holiday-bg);
-        }
-
-        .day-number {
-            font-weight: 700;
-            font-size: 12px;
-            text-align: left;
-            margin-bottom: 3px;
-            color: var(--text-main);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .holiday-label {
-            font-size: 10px;
-            color: #e74c3c;
-            background: #fadbd8;
-            padding: 1px 4px;
-            border-radius: 3px;
-        }
-
-        .period-slot {
-            font-size: 11px;
-            padding: 3px 5px;
-            margin-bottom: 2px;
-            border-radius: 4px;
-            background: #f8fafc;
-            border: 1px solid #e2e8f0;
-            cursor: pointer;
-            text-align: left;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .period-slot:hover {
-            border-color: var(--primary-orange);
-        }
-
-        .period-slot.occupied {
-            font-weight: 600;
-            border: 1px solid rgba(0,0,0,0.15);
-        }
-
-        .period-slot.disabled {
-            background: #e2e8f0;
-            color: #94a3b8;
-            cursor: not-allowed;
-            border-color: #cbd5e1;
-        }
-
-        /* 板块 3：商品样式 */
-        .product-form {
-            display: flex;
-            gap: 12px;
-            margin-bottom: 16px;
-        }
-
-        .product-list {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-            gap: 12px;
-        }
-
-        .product-card {
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            padding: 12px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background: #fffcf7;
-        }
-
-        .product-name {
-            font-weight: 600;
-            font-size: 14px;
-        }
-
-        .product-price {
-            color: #27ae60;
-            font-weight: 700;
-            font-size: 15px;
-        }
-
-        .delete-btn {
-            background: #e74c3c;
-            padding: 4px 8px;
-            font-size: 12px;
-        }
-
-        /* 弹窗样式 */
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.4);
-            justify-content: center;
-            align-items: center;
-            z-index: 1000;
-        }
-
-        .modal-content {
-            background: white;
-            padding: 20px;
-            border-radius: 8px;
-            width: 380px;
-        }
-
-        .quick-milestone-box {
-            margin-top: 14px;
-            padding-top: 12px;
-            border-top: 1px dashed var(--border-color);
-        }
-
-        .quick-milestone-box p {
-            font-size: 12px;
-            font-weight: 600;
-            color: #4b5563;
-            margin-bottom: 8px;
-        }
-
-        .quick-btn-group {
-            display: flex;
-            gap: 6px;
-        }
-
-        .quick-btn-group button {
-            flex: 1;
-            font-size: 12px;
-            padding: 6px 0;
-        }
-
-        .modal-actions {
-            display: flex;
-            justify-content: flex-end;
-            gap: 8px;
-            margin-top: 16px;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ZERO日本語・日本留学 - 综合排课与管理系统</title>
+  <!-- 引入 Supabase 官方 SDK (用于工作台) -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    /* 全局基础重置与主导航样式 */
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    }
+
+    body {
+      background-color: #f8fafc;
+      color: #1e293b;
+    }
+
+    .main-navigation-bar {
+      background: #1e293b;
+      padding: 10px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.15);
+      position: sticky;
+      top: 0;
+      z-index: 9999;
+    }
+
+    .main-nav-brand {
+      color: #ffffff;
+      font-weight: 700;
+      font-size: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .main-nav-tabs {
+      display: flex;
+      gap: 10px;
+    }
+
+    .main-tab-btn {
+      background: #334155;
+      color: #cbd5e1;
+      border: 1px solid #475569;
+      padding: 8px 18px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s ease;
+    }
+
+    .main-tab-btn:hover {
+      background: #475569;
+      color: #ffffff;
+    }
+
+    .main-tab-btn.active {
+      background: #e67e22;
+      color: #ffffff;
+      border-color: #e67e22;
+      box-shadow: 0 2px 6px rgba(230, 126, 34, 0.35);
+    }
+
+    .page-view-container {
+      display: none;
+    }
+
+    .page-view-container.active-view {
+      display: block;
+    }
+
+    /* =========================================================
+       VIEW 1: 工作台独立样式作用域 (#view-workspace)
+       ========================================================= */
+    #view-workspace {
+      --primary-orange: #e67e22;
+      --primary-orange-light: #fdf6ec;
+      --bg-color: #fcf8f2;
+      --card-bg: #ffffff;
+      --text-main: #2c3e50;
+      --text-muted: #7f8c8d;
+      --border-color: #f3e5d8;
+      --holiday-bg: #f1f2f6;
+      --holiday-text: #a4b0be;
+      background-color: var(--bg-color);
+      color: var(--text-main);
+      padding: 24px;
+      min-height: calc(100vh - 56px);
+    }
+
+    #view-workspace .ws-wrapper {
+      max-width: 1600px;
+      margin: 0 auto;
+    }
+
+    #view-workspace header {
+      margin-bottom: 24px;
+      padding-bottom: 16px;
+      border-bottom: 2px solid var(--border-color);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    #view-workspace h1 {
+      font-size: 24px;
+      color: var(--primary-orange);
+      font-weight: 700;
+    }
+
+    #view-workspace .header-right {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    #view-workspace .sync-badge {
+      font-size: 13px;
+      background: #ecfdf5;
+      color: #059669;
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-weight: 600;
+      border: 1px solid #a7f3d0;
+    }
+
+    #view-workspace .timezone-badge {
+      font-size: 13px;
+      background: #fae5d3;
+      color: var(--primary-orange);
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-weight: 600;
+    }
+
+    #view-workspace .grid-container {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 24px;
+    }
+
+    #view-workspace .card {
+      background: var(--card-bg);
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+      border: 1px solid var(--border-color);
+    }
+
+    #view-workspace .card-title {
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--primary-orange);
+    }
+
+    #view-workspace .countdown-form {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+      align-items: center;
+      background: #fffcf7;
+      padding: 14px;
+      border-radius: 8px;
+      border: 1px dashed #fabe8a;
+    }
+
+    #view-workspace .countdown-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 16px;
+    }
+
+    #view-workspace .countdown-item {
+      background: #fffcf7;
+      padding: 16px;
+      border-radius: 8px;
+      border: 1px solid var(--border-color);
+      position: relative;
+    }
+
+    #view-workspace .countdown-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+
+    #view-workspace .countdown-item h3 {
+      font-size: 15px;
+      color: var(--text-main);
+      font-weight: 600;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      padding-right: 8px;
+    }
+
+    #view-workspace .countdown-target-time {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-bottom: 10px;
+    }
+
+    #view-workspace .timer-display {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--primary-orange);
+      text-align: center;
+      padding: 8px 0;
+      background: #ffffff;
+      border-radius: 6px;
+      border: 1px dashed var(--primary-orange);
+    }
+
+    #view-workspace .countdown-del-btn {
+      color: #ef4444;
+      cursor: pointer;
+      font-weight: bold;
+      font-size: 14px;
+      padding: 2px 6px;
+      border-radius: 4px;
+      background: #fee2e2;
+      border: none;
+    }
+
+    #view-workspace .countdown-del-btn:hover {
+      background: #fca5a5;
+    }
+
+    #view-workspace input[type="datetime-local"], 
+    #view-workspace input[type="text"], 
+    #view-workspace input[type="number"], 
+    #view-workspace input[type="date"], 
+    #view-workspace input[type="color"], 
+    #view-workspace select {
+      padding: 8px 12px;
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      font-size: 14px;
+      outline: none;
+      background: #fff;
+    }
+
+    #view-workspace input[type="color"] {
+      padding: 2px 4px;
+      width: 44px;
+      height: 38px;
+      cursor: pointer;
+    }
+
+    #view-workspace input:focus, #view-workspace select:focus {
+      border-color: var(--primary-orange);
+    }
+
+    #view-workspace button {
+      background: var(--primary-orange);
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 500;
+      transition: opacity 0.2s;
+      white-space: nowrap;
+    }
+
+    #view-workspace button:hover {
+      opacity: 0.9;
+    }
+
+    #view-workspace .btn-secondary {
+      background: #7f8c8d;
+    }
+
+    #view-workspace .btn-secondary:disabled {
+      background: #bdc3c7;
+      cursor: not-allowed;
+      opacity: 0.6;
+    }
+
+    #view-workspace .btn-replan {
+      background: #0284c7;
+    }
+
+    #view-workspace .btn-replan:hover {
+      background: #0369a1;
+    }
+
+    #view-workspace .btn-rescue {
+      background: #e11d48;
+      font-size: 13px;
+      padding: 6px 12px;
+      font-weight: 700;
+    }
+
+    #view-workspace .btn-backup {
+      background: #475569;
+      font-size: 13px;
+      padding: 6px 12px;
+    }
+
+    #view-workspace .panel-box {
+      background: #fffaf0;
+      border: 1px solid #fabe8a;
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 16px;
+    }
+
+    #view-workspace .panel-row {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    #view-workspace .panel-row label {
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    #view-workspace .weekday-checkboxes {
+      display: flex;
+      gap: 10px;
+      background: #fff;
+      padding: 6px 12px;
+      border-radius: 6px;
+      border: 1px solid var(--border-color);
+    }
+
+    #view-workspace .weekday-checkboxes label {
+      font-size: 13px;
+      font-weight: normal;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    #view-workspace .tag-list {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 10px;
+    }
+
+    #view-workspace .tag-item {
+      background: #ffeaa7;
+      color: #d35400;
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    #view-workspace .tag-item span {
+      cursor: pointer;
+      color: #e74c3c;
+    }
+
+    #view-workspace .class-badge {
+      padding: 5px 12px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      border: 1px solid rgba(0,0,0,0.1);
+    }
+
+    #view-workspace .class-action-btn {
+      cursor: pointer;
+      font-size: 11px;
+      padding: 2px 6px;
+      border-radius: 4px;
+      background: rgba(0,0,0,0.15);
+      transition: background 0.15s;
+    }
+
+    #view-workspace .class-action-btn:hover {
+      background: rgba(0,0,0,0.3);
+    }
+
+    #view-workspace .milestone-summary-box {
+      background: #f0fdf4;
+      border: 1px solid #bbf7d0;
+      border-radius: 8px;
+      padding: 14px 16px;
+      margin-bottom: 16px;
+    }
+
+    #view-workspace .milestone-summary-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: #166534;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    #view-workspace .milestone-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 10px;
+    }
+
+    #view-workspace .milestone-card {
+      background: #ffffff;
+      border: 1px solid #dcfce7;
+      border-left: 4px solid #16a34a;
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-size: 13px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    #view-workspace .milestone-card.type-开班 { border-left-color: #16a34a; }
+    #view-workspace .milestone-card.type-半期 { border-left-color: #eab308; }
+    #view-workspace .milestone-card.type-结课 { border-left-color: #dc2626; }
+
+    #view-workspace .milestone-tag-badge {
+      font-weight: 700;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 11px;
+      color: #fff;
+    }
+
+    #view-workspace .badge-开班 { background: #16a34a; }
+    #view-workspace .badge-半期 { background: #eab308; }
+    #view-workspace .badge-结课 { background: #dc2626; }
+
+    #view-workspace .milestone-del-btn {
+      color: #ef4444;
+      cursor: pointer;
+      font-weight: bold;
+      margin-left: 6px;
+    }
+
+    #view-workspace .inline-badge-icon {
+      display: inline-flex;
+      align-items: center;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 1px 4px;
+      border-radius: 4px;
+      color: #fff;
+      margin-left: 4px;
+      line-height: 1.2;
+      vertical-align: middle;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.15);
+    }
+
+    #view-workspace .month-control-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    #view-workspace .month-picker-group {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    #view-workspace .rooms-twin-container {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+    }
+
+    @media (max-width: 1300px) {
+      #view-workspace .rooms-twin-container {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    #view-workspace .room-box {
+      background: #fff;
+      border-radius: 8px;
+      border: 2px solid var(--primary-orange);
+      overflow: hidden;
+    }
+
+    #view-workspace .room-header {
+      background: var(--primary-orange);
+      color: white;
+      padding: 10px;
+      font-size: 20px;
+      font-weight: 700;
+      text-align: center;
+    }
+
+    #view-workspace .calendar-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+      text-align: center;
+      table-layout: fixed;
+    }
+
+    #view-workspace .calendar-table th, 
+    #view-workspace .calendar-table td {
+      border: 1px solid var(--border-color);
+      padding: 4px;
+    }
+
+    #view-workspace .calendar-table th {
+      background: #fdf3e7;
+      color: #d35400;
+      font-weight: 600;
+      height: 36px;
+    }
+
+    #view-workspace .calendar-table th.weekend {
+      background: #fae5d3;
+      color: #c0392b;
+    }
+
+    #view-workspace .day-cell {
+      height: 96px;
+      vertical-align: top;
+      background: #fff;
+    }
+
+    #view-workspace .day-cell.other-month {
+      background: #fafafa;
+      opacity: 0.4;
+    }
+
+    #view-workspace .day-cell.is-holiday {
+      background: var(--holiday-bg);
+    }
+
+    #view-workspace .day-number {
+      font-weight: 700;
+      font-size: 12px;
+      text-align: left;
+      margin-bottom: 3px;
+      color: var(--text-main);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    #view-workspace .holiday-label {
+      font-size: 10px;
+      color: #e74c3c;
+      background: #fadbd8;
+      padding: 1px 4px;
+      border-radius: 3px;
+    }
+
+    #view-workspace .period-slot {
+      font-size: 11px;
+      padding: 3px 5px;
+      margin-bottom: 2px;
+      border-radius: 4px;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      cursor: pointer;
+      text-align: left;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    #view-workspace .period-slot:hover {
+      border-color: var(--primary-orange);
+    }
+
+    #view-workspace .period-slot.occupied {
+      font-weight: 600;
+      border: 1px solid rgba(0,0,0,0.15);
+    }
+
+    #view-workspace .period-slot.disabled {
+      background: #e2e8f0;
+      color: #94a3b8;
+      cursor: not-allowed;
+      border-color: #cbd5e1;
+    }
+
+    #view-workspace .product-form {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    #view-workspace .product-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 12px;
+    }
+
+    #view-workspace .product-card {
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #fffcf7;
+    }
+
+    #view-workspace .product-name {
+      font-weight: 600;
+      font-size: 14px;
+    }
+
+    #view-workspace .product-price {
+      color: #27ae60;
+      font-weight: 700;
+      font-size: 15px;
+    }
+
+    #view-workspace .delete-btn {
+      background: #e74c3c;
+      padding: 4px 8px;
+      font-size: 12px;
+    }
+
+    #view-workspace .modal {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0,0,0,0.4);
+      justify-content: center;
+      align-items: center;
+      z-index: 10000;
+    }
+
+    #view-workspace .modal-content {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      width: 380px;
+    }
+
+    #view-workspace .quick-milestone-box {
+      margin-top: 14px;
+      padding-top: 12px;
+      border-top: 1px dashed var(--border-color);
+    }
+
+    #view-workspace .quick-milestone-box p {
+      font-size: 12px;
+      font-weight: 600;
+      color: #4b5563;
+      margin-bottom: 8px;
+    }
+
+    #view-workspace .quick-btn-group {
+      display: flex;
+      gap: 6px;
+    }
+
+    #view-workspace .quick-btn-group button {
+      flex: 1;
+      font-size: 12px;
+      padding: 6px 0;
+    }
+
+    #view-workspace .modal-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+      margin-top: 16px;
+    }
+
+    /* =========================================================
+       VIEW 2: 教师月度排课看板独立样式作用域 (#view-teacher)
+       ========================================================= */
+    #view-teacher {
+      --primary: #4f46e5;
+      --primary-hover: #4338ca;
+      --rest-bg: #e2f8f0;
+      --rest-text: #059669;
+      --public-rest-bg: #fee2e2;
+      --public-rest-text: #dc2626;
+      --border-color: #cbd5e1;
+      --hour-line: #e2e8f0;
+      --hour-text: #94a3b8;
+      background-color: #f1f5f9;
+      color: #1e293b;
+      padding: 20px;
+      user-select: none;
+      min-height: calc(100vh - 56px);
+    }
+
+    #view-teacher .container {
+      max-width: 1600px;
+      margin: 0 auto;
+      background: #ffffff;
+      border-radius: 12px;
+      padding: 24px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+    }
+
+    #view-teacher .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 2px solid #f1f5f9;
+      padding-bottom: 16px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    #view-teacher .brand-title {
+      font-size: 20px;
+      font-weight: 700;
+      color: #0f172a;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    #view-teacher .brand-title span {
+      font-size: 13px;
+      font-weight: normal;
+      color: #64748b;
+    }
+
+    #view-teacher .btn-group {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    #view-teacher button {
+      padding: 7px 14px;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      background-color: #fff;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 500;
+      transition: all 0.2s;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    #view-teacher button:hover {
+      background-color: #f8fafc;
+    }
+
+    #view-teacher button:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+      background-color: #f1f5f9;
+    }
+
+    #view-teacher button.primary {
+      background-color: var(--primary);
+      border-color: var(--primary);
+      color: white;
+    }
+
+    #view-teacher button.primary:hover {
+      background-color: var(--primary-hover);
+    }
+
+    #view-teacher .control-panel {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #f8fafc;
+      padding: 12px 18px;
+      border-radius: 8px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+      gap: 14px;
+    }
+
+    #view-teacher .teacher-tabs {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    #view-teacher .teacher-tab {
+      display: inline-flex;
+      align-items: center;
+      padding: 5px 12px 5px 16px;
+      background: #fff;
+      border: 1px solid #cbd5e1;
+      border-radius: 20px;
+      cursor: pointer;
+      font-size: 13px;
+      gap: 6px;
+      transition: all 0.2s;
+    }
+
+    #view-teacher .teacher-tab.active {
+      background: var(--primary);
+      border-color: var(--primary);
+      color: #fff;
+      font-weight: 600;
+    }
+
+    #view-teacher .teacher-tab .del-teacher-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: rgba(0, 0, 0, 0.1);
+      font-size: 11px;
+      line-height: 1;
+      opacity: 0.7;
+      transition: all 0.2s;
+    }
+
+    #view-teacher .teacher-tab.active .del-teacher-btn {
+      background: rgba(255, 255, 255, 0.3);
+      color: #fff;
+    }
+
+    #view-teacher .teacher-tab .del-teacher-btn:hover {
+      opacity: 1;
+      background: #dc2626 !important;
+      color: #fff !important;
+    }
+
+    #view-teacher .month-nav {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    #view-teacher .month-nav input[type="month"] {
+      padding: 4px 8px;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      color: #1e293b;
+      outline: none;
+    }
+
+    #view-teacher .stats-bar {
+      display: flex;
+      gap: 16px;
+      font-size: 13px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    #view-teacher .stats-bar strong {
+      color: var(--primary);
+      font-size: 15px;
+    }
+
+    #view-teacher .student-categories-panel {
+      background: #fff;
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      padding: 14px 18px;
+      margin-bottom: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    #view-teacher .student-cat-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    #view-teacher .student-cat-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 700;
+      min-width: 145px;
+    }
+
+    #view-teacher .badge-scheduled { background: #dcfce7; color: #15803d; border: 1px solid #bbf7d0; }
+    #view-teacher .badge-unscheduled { background: #fef9c3; color: #a16207; border: 1px solid #fef08a; }
+    #view-teacher .badge-paused { background: #f1f5f9; color: #64748b; border: 1px solid #e2e8f0; }
+
+    #view-teacher .student-tag-list {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      flex: 1;
+    }
+
+    #view-teacher .student-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 12px;
+      border-radius: 16px;
+      font-size: 12px;
+      font-weight: 600;
+      border: 1.5px solid rgba(0,0,0,0.1);
+      box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+      cursor: pointer;
+      transition: all 0.2s;
+      color: #1e293b;
+    }
+
+    #view-teacher .student-tag:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 3px 8px rgba(0,0,0,0.1);
+      border-color: #4f46e5;
+    }
+
+    #view-teacher .student-tag.active-filter {
+      outline: 2.5px solid #4f46e5;
+      outline-offset: 1px;
+      font-weight: 800;
+      transform: scale(1.04);
+    }
+
+    #view-teacher .student-color-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      display: inline-block;
+    }
+
+    #view-teacher .filter-alert-bar {
+      display: none;
+      align-items: center;
+      justify-content: space-between;
+      background: #eef2ff;
+      border: 1px solid #c7d2fe;
+      padding: 6px 14px;
+      border-radius: 6px;
+      font-size: 12px;
+      color: #3730a3;
+      margin-top: 4px;
+    }
+
+    #view-teacher .table-container {
+      overflow-x: auto;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      background: #fff;
+    }
+
+    #view-teacher table.month-table {
+      width: 100%;
+      border-collapse: collapse;
+      table-layout: fixed;
+      min-width: 1280px;
+    }
+
+    #view-teacher table.month-table th, 
+    #view-teacher table.month-table td {
+      border: 1px solid var(--border-color);
+      text-align: center;
+      padding: 0;
+      position: relative;
+      vertical-align: top;
+    }
+
+    #view-teacher .weekday-row th {
+      background: #f8fafc;
+      padding: 10px 4px;
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    #view-teacher .date-row th {
+      background: #e2e8f0;
+      padding: 6px 8px;
+      font-size: 12px;
+      font-weight: 600;
+      color: #334155;
+      display: table-cell;
+    }
+
+    #view-teacher .date-header-inner {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    #view-teacher .date-header-btn {
+      padding: 2px 6px;
+      font-size: 10px;
+      border-radius: 4px;
+      border: 1px solid #cbd5e1;
+      background: #fff;
+      cursor: pointer;
+    }
+
+    #view-teacher .date-header-btn.is-rest {
+      color: #059669;
+      border-color: #a7f3d0;
+      background-color: #f0fdf4;
+      font-weight: 600;
+    }
+
+    #view-teacher .day-timeline-box {
+      height: 360px;
+      position: relative;
+      background: #ffffff;
+      cursor: pointer;
+    }
+
+    #view-teacher .hour-grid-line {
+      position: absolute;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background-color: var(--hour-line);
+      pointer-events: none;
+    }
+
+    #view-teacher .hour-grid-text {
+      position: absolute;
+      left: 4px;
+      font-size: 9px;
+      color: var(--hour-text);
+      line-height: 1;
+      pointer-events: none;
+      transform: translateY(-50%);
+    }
+
+    #view-teacher .course-block {
+      position: absolute;
+      left: 36px;
+      right: 6px;
+      border-radius: 4px;
+      padding: 4px 6px;
+      font-size: 11px;
+      font-weight: 600;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+      border-left: 3px solid rgba(0,0,0,0.3);
+      z-index: 2;
+      transition: all 0.2s;
+    }
+
+    #view-teacher .course-block:hover {
+      opacity: 0.95;
+    }
+
+    #view-teacher .course-block .time-tag {
+      font-size: 9px;
+      font-weight: normal;
+      opacity: 0.85;
+      margin-bottom: 2px;
+    }
+
+    #view-teacher .course-block.focused-highlight {
+      z-index: 10 !important;
+      transform: scale(1.03);
+      box-shadow: 0 0 0 2.5px #4f46e5, 0 4px 12px rgba(79, 70, 229, 0.35) !important;
+      filter: saturate(1.4) brightness(1.02);
+      border-left-width: 4px;
+    }
+
+    #view-teacher .course-block.dimmed-out {
+      opacity: 0.18 !important;
+      filter: grayscale(0.8);
+      box-shadow: none !important;
+    }
+
+    #view-teacher .rest-column-mask {
+      height: 360px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background-color: var(--rest-bg);
+      color: var(--rest-text);
+      font-size: 15px;
+      font-weight: 600;
+      letter-spacing: 2px;
+      cursor: pointer;
+    }
+
+    #view-teacher .public-rest-column-mask {
+      height: 360px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background-color: var(--public-rest-bg);
+      color: var(--public-rest-text);
+      font-size: 15px;
+      font-weight: 600;
+      letter-spacing: 2px;
+      cursor: pointer;
+    }
+
+    #view-teacher .empty-month-cell {
+      height: 360px;
+      background-color: #f8fafc;
+    }
+
+    #view-teacher .modal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.45);
+      justify-content: center;
+      align-items: center;
+      z-index: 10000;
+    }
+
+    #view-teacher .modal-content {
+      background: white;
+      padding: 24px;
+      border-radius: 10px;
+      width: 560px;
+      max-width: 92%;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+    }
+
+    #view-teacher .modal-title {
+      font-size: 16px;
+      font-weight: 700;
+      margin-bottom: 16px;
+      color: #0f172a;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    #view-teacher .form-row {
+      display: flex;
+      align-items: center;
+      margin-bottom: 14px;
+      gap: 12px;
+    }
+
+    #view-teacher .form-row label {
+      width: 90px;
+      font-size: 13px;
+      font-weight: 500;
+      color: #334155;
+      text-align: right;
+      flex-shrink: 0;
+    }
+
+    #view-teacher .form-row label.required::before {
+      content: "* ";
+      color: #ef4444;
+    }
+
+    #view-teacher .form-control-wrap {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    #view-teacher .form-control-wrap input,
+    #view-teacher .form-control-wrap select,
+    #view-teacher .form-control-wrap textarea {
+      padding: 7px 10px;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      font-size: 13px;
+      outline: none;
+    }
+
+    #view-teacher .form-control-wrap input:focus,
+    #view-teacher .form-control-wrap select:focus,
+    #view-teacher .form-control-wrap textarea:focus {
+      border-color: var(--primary);
+    }
+
+    #view-teacher .weekday-selector {
+      display: flex;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      overflow: hidden;
+      width: 100%;
+    }
+
+    #view-teacher .weekday-btn {
+      flex: 1;
+      text-align: center;
+      padding: 7px 0;
+      font-size: 12px;
+      background: #fff;
+      border: none;
+      border-right: 1px solid #cbd5e1;
+      border-radius: 0;
+      cursor: pointer;
+      justify-content: center;
+    }
+
+    #view-teacher .weekday-btn:last-child {
+      border-right: none;
+    }
+
+    #view-teacher .weekday-btn.active {
+      background: #059669;
+      color: #fff;
+      font-weight: 600;
+    }
+
+    #view-teacher .modal-footer {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      margin-top: 20px;
+      border-top: 1px solid #f1f5f9;
+      padding-top: 14px;
+    }
+
+    #view-teacher .student-manage-list {
+      max-height: 260px;
+      overflow-y: auto;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      padding: 8px;
+      width: 100%;
+    }
+
+    #view-teacher .student-manage-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 10px;
+      border-radius: 6px;
+      background: #f8fafc;
+      margin-bottom: 6px;
+      gap: 8px;
+    }
+
+    #view-teacher .student-manage-item:last-child {
+      margin-bottom: 0;
+    }
+
+    #view-teacher .status-select {
+      padding: 3px 6px;
+      font-size: 12px;
+      border-radius: 4px;
+      border: 1px solid #cbd5e1;
+      background: #fff;
+      color: #334155;
+    }
+
+    #view-teacher .picker-calendar {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      overflow: hidden;
+    }
+
+    #view-teacher .picker-calendar th {
+      background: #f1f5f9;
+      padding: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      border: 1px solid #e2e8f0;
+      text-align: center;
+    }
+
+    #view-teacher .picker-calendar td {
+      border: 1px solid #e2e8f0;
+      padding: 8px 4px;
+      text-align: center;
+      font-size: 12px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    #view-teacher .picker-calendar td.other-month {
+      color: #cbd5e1;
+      cursor: not-allowed;
+      background: #fafafa;
+    }
+
+    #view-teacher .picker-calendar td.selected-holiday {
+      background-color: var(--public-rest-bg);
+      color: var(--public-rest-text);
+      font-weight: 700;
+    }
+
+    #view-teacher .picker-calendar td.selected-holiday::after {
+      content: ' 🎌';
+      font-size: 10px;
+    }
+
+    #view-teacher .picker-calendar td.selected-teacher-rest {
+      background-color: var(--rest-bg);
+      color: var(--rest-text);
+      font-weight: 700;
+    }
+
+    #view-teacher .picker-calendar td.selected-teacher-rest::after {
+      content: ' ♨';
+      font-size: 10px;
+    }
+  </style>
 </head>
 <body>
 
-    <header>
+  <!-- 顶部主导航栏 -->
+  <nav class="main-navigation-bar">
+    <div class="main-nav-brand">
+      🌸 ZERO日本語・日本留学 系统中台
+    </div>
+    <div class="main-nav-tabs">
+      <button class="main-tab-btn active" id="btn-tab-workspace" onclick="switchMainView('workspace')">
+        🖥️ 综合管理工作台
+      </button>
+      <button class="main-tab-btn" id="btn-tab-teacher" onclick="switchMainView('teacher')">
+        📅 教师月度排课看板
+      </button>
+    </div>
+  </nav>
+
+  <!-- =========================================================
+       页面 1: ZERO 工作台 (原 HTML 2)
+       ========================================================= -->
+  <div id="view-workspace" class="page-view-container active-view">
+    <div class="ws-wrapper">
+      <header>
         <h1>ZERO日本語・日本留学 - 工作台</h1>
         <div class="header-right">
-            <div class="sync-badge" id="sync-status">🟢 云端已连接</div>
-            <button class="btn-rescue" onclick="deepScanAndRescue()">🚨 深度扫描并恢复所有历史数据</button>
-            <button class="btn-backup" onclick="exportDataBackup()">📦 导出备份</button>
-            <button class="btn-backup" onclick="document.getElementById('import-file-input').click()">📥 导入备份</button>
-            <input type="file" id="import-file-input" style="display:none;" accept=".json" onchange="importDataBackup(event)">
-            <div class="timezone-badge" id="bj-time">北京时间：加载中...</div>
+          <div class="sync-badge" id="sync-status">🟢 云端已连接</div>
+          <button class="btn-rescue" onclick="deepScanAndRescue()">🚨 深度扫描并恢复所有历史数据</button>
+          <button class="btn-backup" onclick="exportDataBackup()">📦 导出备份</button>
+          <button class="btn-backup" onclick="document.getElementById('import-file-input').click()">📥 导入备份</button>
+          <input type="file" id="import-file-input" style="display:none;" accept=".json" onchange="importDataBackup(event)">
+          <div class="timezone-badge" id="bj-time">北京时间：加载中...</div>
         </div>
-    </header>
+      </header>
 
-    <div class="grid-container">
+      <div class="grid-container">
 
         <!-- 板块 1：倒计时 -->
         <div class="card">
-            <div class="card-title">🌟 重要时间节点倒计时</div>
-            <div class="countdown-form">
-                <input type="text" id="new-countdown-name" placeholder="事件名称（例：JLPT 报名/考试/查成绩）" style="width: 260px;">
-                <input type="datetime-local" id="new-countdown-time" style="width: 220px;">
-                <button onclick="addCountdown()">+ 添加倒计时</button>
-            </div>
-            <div class="countdown-grid" id="countdown-list"></div>
+          <div class="card-title">🌟 重要时间节点倒计时</div>
+          <div class="countdown-form">
+            <input type="text" id="new-countdown-name" placeholder="事件名称（例：JLPT 报名/考试/查成绩）" style="width: 260px;">
+            <input type="datetime-local" id="new-countdown-time" style="width: 220px;">
+            <button onclick="addCountdown()">+ 添加倒计时</button>
+          </div>
+          <div class="countdown-grid" id="countdown-list"></div>
         </div>
 
         <!-- 板块 2：全月网格排课 -->
         <div class="card">
-            <div class="card-title">🌟 全月日历网格排课</div>
+          <div class="card-title">🌟 全月日历网格排课</div>
 
-            <!-- 第一步：班级与颜色管理 -->
-            <div class="panel-box" style="background: #f0fdf4; border-color: #86efac;">
-                <div class="panel-row">
-                    <label>🎨 1. 创建班级与设定专属颜色：</label>
-                    <input type="text" id="class-name" placeholder="班级名称（例：N2冲刺班）" style="width: 200px;">
-                    <label style="font-size: 13px; font-weight: normal;">班级颜色：</label>
-                    <input type="color" id="class-color" value="#3b82f6">
-                    <button onclick="addClass()" style="background: #10b981;">新建班级</button>
-                </div>
-                <div class="tag-list" id="class-tags"></div>
+          <!-- 第一步：班级与颜色管理 -->
+          <div class="panel-box" style="background: #f0fdf4; border-color: #86efac;">
+            <div class="panel-row">
+              <label>🎨 1. 创建班级与设定专属颜色：</label>
+              <input type="text" id="class-name" placeholder="班级名称（例：N2冲刺班）" style="width: 200px;">
+              <label style="font-size: 13px; font-weight: normal;">班级颜色：</label>
+              <input type="color" id="class-color" value="#3b82f6">
+              <button onclick="addClass()" style="background: #10b981;">新建班级</button>
             </div>
+            <div class="tag-list" id="class-tags"></div>
+          </div>
 
-            <!-- 里程碑节点面板 -->
-            <div class="panel-box" style="background: #eff6ff; border-color: #93c5fd;">
-                <div class="panel-row">
-                    <label>🚩 2. 标注班级里程碑节点：</label>
-                    <select id="milestone-class-select" style="font-weight: 600; min-width: 150px;"></select>
-                    <select id="milestone-type-select">
-                        <option value="开班">🟢 开班</option>
-                        <option value="半期">🟡 半期</option>
-                        <option value="结课">🔴 结课</option>
-                    </select>
-                    <input type="date" id="milestone-date">
-                    <button onclick="addMilestone()" style="background: #2563eb;">标记节点</button>
-                </div>
+          <!-- 里程碑节点面板 -->
+          <div class="panel-box" style="background: #eff6ff; border-color: #93c5fd;">
+            <div class="panel-row">
+              <label>🚩 2. 标注班级里程碑节点：</label>
+              <select id="milestone-class-select" style="font-weight: 600; min-width: 150px;"></select>
+              <select id="milestone-type-select">
+                <option value="开班">🟢 开班</option>
+                <option value="半期">🟡 半期</option>
+                <option value="结课">🔴 结课</option>
+              </select>
+              <input type="date" id="milestone-date">
+              <button onclick="addMilestone()" style="background: #2563eb;">标记节点</button>
             </div>
+          </div>
 
-            <!-- 第二步：节假日设置面板 -->
-            <div class="panel-box" style="background: #fff5f5; border-color: #feb2b2;">
-                <div class="panel-row">
-                    <label>🎉 3. 设置不排课节假日：</label>
-                    <input type="date" id="holiday-start">
-                    <span>至</span>
-                    <input type="date" id="holiday-end" placeholder="可选（单天可不填）">
-                    <input type="text" id="holiday-name" placeholder="节假日名称（如：国庆节）" style="width: 160px;">
-                    <button onclick="addHoliday()" style="background: #e74c3c;">添加节假日</button>
-                </div>
-                <div class="tag-list" id="holiday-tags"></div>
+          <!-- 第二步：节假日设置面板 -->
+          <div class="panel-box" style="background: #fff5f5; border-color: #feb2b2;">
+            <div class="panel-row">
+              <label>🎉 3. 设置不排课节假日：</label>
+              <input type="date" id="holiday-start">
+              <span>至</span>
+              <input type="date" id="holiday-end" placeholder="可选（单天可不填）">
+              <input type="text" id="holiday-name" placeholder="节假日名称（如：国庆节）" style="width: 160px;">
+              <button onclick="addHoliday()" style="background: #e74c3c;">添加节假日</button>
             </div>
+            <div class="tag-list" id="holiday-tags"></div>
+          </div>
 
-            <!-- 第三步：批量排课 -->
-            <div class="panel-box">
-                <div class="panel-row" style="margin-bottom: 10px;">
-                    <label>⚡️ 4. 批量排课 / 调整某班排课时间与次数：</label>
-                    <select id="batch-class-select" style="font-weight: 600; color: var(--primary-orange); min-width: 160px;"></select>
-                    <span>开始日期：</span>
-                    <input type="date" id="batch-start">
-                    <span>每周：</span>
-                    <div class="weekday-checkboxes">
-                        <label><input type="checkbox" name="batch-week" value="1">一</label>
-                        <label><input type="checkbox" name="batch-week" value="2">二</label>
-                        <label><input type="checkbox" name="batch-week" value="3">三</label>
-                        <label><input type="checkbox" name="batch-week" value="4">四</label>
-                        <label><input type="checkbox" name="batch-week" value="5">五</label>
-                        <label><input type="checkbox" name="batch-week" value="6">六</label>
-                        <label><input type="checkbox" name="batch-week" value="0">日</label>
-                    </div>
-                </div>
-                <div class="panel-row">
-                    <select id="batch-period">
-                        <option value="上午">上午</option>
-                        <option value="下午">下午</option>
-                        <option value="晚上">晚上</option>
-                    </select>
-                    <select id="batch-room">
-                        <option value="A">教室 A</option>
-                        <option value="B">教室 B</option>
-                    </select>
-                    <input type="number" id="batch-count" placeholder="总课次数（如 22）" style="width: 140px;" min="1">
-                    <span>次课</span>
-                    <button onclick="batchBookWeekly(false)">一键智能追加排课</button>
-                    <button class="btn-replan" onclick="batchBookWeekly(true)" title="清空该班原有的排课，并按最新设置的时间、周几和次数重新覆盖排课">🔄 重新规划/覆盖该班排课</button>
-                    <button id="undo-btn" class="btn-secondary" onclick="undoLastBatch()" disabled title="仅可撤销上一次排课/清空操作">↩️ 撤销上一次操作</button>
-                </div>
+          <!-- 第三步：批量排课 -->
+          <div class="panel-box">
+            <div class="panel-row" style="margin-bottom: 10px;">
+              <label>⚡️ 4. 批量排课 / 调整某班排课时间与次数：</label>
+              <select id="batch-class-select" style="font-weight: 600; color: var(--primary-orange); min-width: 160px;"></select>
+              <span>开始日期：</span>
+              <input type="date" id="batch-start">
+              <span>每周：</span>
+              <div class="weekday-checkboxes">
+                <label><input type="checkbox" name="batch-week" value="1">一</label>
+                <label><input type="checkbox" name="batch-week" value="2">二</label>
+                <label><input type="checkbox" name="batch-week" value="3">三</label>
+                <label><input type="checkbox" name="batch-week" value="4">四</label>
+                <label><input type="checkbox" name="batch-week" value="5">五</label>
+                <label><input type="checkbox" name="batch-week" value="6">六</label>
+                <label><input type="checkbox" name="batch-week" value="0">日</label>
+              </div>
             </div>
+            <div class="panel-row">
+              <select id="batch-period">
+                <option value="上午">上午</option>
+                <option value="下午">下午</option>
+                <option value="晚上">晚上</option>
+              </select>
+              <select id="batch-room">
+                <option value="A">教室 A</option>
+                <option value="B">教室 B</option>
+              </select>
+              <input type="number" id="batch-count" placeholder="总课次数（如 22）" style="width: 140px;" min="1">
+              <span>次课</span>
+              <button onclick="batchBookWeekly(false)">一键智能追加排课</button>
+              <button class="btn-replan" onclick="batchBookWeekly(true)" title="清空该班原有的排课，并按最新设置的时间、周几和次数重新覆盖排课">🔄 重新规划/覆盖该班排课</button>
+              <button id="undo-btn" class="btn-secondary" onclick="undoLastBatch()" disabled title="仅可撤销上一次排课/清空操作">↩️ 撤销上一次操作</button>
+            </div>
+          </div>
 
-            <!-- 里程碑节点提醒 -->
-            <div class="milestone-summary-box">
-                <div class="milestone-summary-title">
-                    <span>🚩 课程里程碑节点提醒（整理汇总）</span>
-                </div>
-                <div class="milestone-grid" id="milestone-summary-list"></div>
+          <!-- 里程碑节点提醒 -->
+          <div class="milestone-summary-box">
+            <div class="milestone-summary-title">
+              <span>🚩 课程里程碑节点提醒（整理汇总）</span>
             </div>
+            <div class="milestone-grid" id="milestone-summary-list"></div>
+          </div>
 
-            <div class="month-control-bar">
-                <div class="month-picker-group">
-                    <label style="font-size: 14px; font-weight: 600;">当前查看月份：</label>
-                    <select id="year-select" onchange="renderCalendars()"></select>
-                    <select id="month-select" onchange="renderCalendars()"></select>
-                    <button onclick="goCurrentMonth()" style="background: #7f8c8d;">当月</button>
-                </div>
-                <div id="data-stats-hint" style="font-size: 13px; color: var(--primary-orange); font-weight: 600;"></div>
+          <div class="month-control-bar">
+            <div class="month-picker-group">
+              <label style="font-size: 14px; font-weight: 600;">当前查看月份：</label>
+              <select id="year-select" onchange="renderCalendars()"></select>
+              <select id="month-select" onchange="renderCalendars()"></select>
+              <button onclick="goCurrentMonth()" style="background: #7f8c8d;">当月</button>
             </div>
+            <div id="data-stats-hint" style="font-size: 13px; color: var(--primary-orange); font-weight: 600;"></div>
+          </div>
 
-            <!-- A/B 教室并列 -->
-            <div class="rooms-twin-container">
-                <div class="room-box">
-                    <div class="room-header">A 教室</div>
-                    <table class="calendar-table" id="table-roomA"></table>
-                </div>
-                <div class="room-box">
-                    <div class="room-header">B 教室</div>
-                    <table class="calendar-table" id="table-roomB"></table>
-                </div>
+          <!-- A/B 教室并列 -->
+          <div class="rooms-twin-container">
+            <div class="room-box">
+              <div class="room-header">A 教室</div>
+              <table class="calendar-table" id="table-roomA"></table>
             </div>
+            <div class="room-box">
+              <div class="room-header">B 教室</div>
+              <table class="calendar-table" id="table-roomB"></table>
+            </div>
+          </div>
         </div>
 
         <!-- 板块 3：学校课程商品 -->
         <div class="card">
-            <div class="card-title">🌟 学校课程商品管理</div>
-            <div class="product-form">
-                <input type="text" id="prod-name" placeholder="课程商品名称（例：N2全科备考班）" style="width: 260px;">
-                <input type="number" id="prod-price" placeholder="价格 (元)" style="width: 140px;">
-                <button onclick="addProduct()">添加课程商品</button>
-            </div>
-            <div class="product-list" id="product-list"></div>
+          <div class="card-title">🌟 学校课程商品管理</div>
+          <div class="product-form">
+            <input type="text" id="prod-name" placeholder="课程商品名称（例：N2全科备考班）" style="width: 260px;">
+            <input type="number" id="prod-price" placeholder="价格 (元)" style="width: 140px;">
+            <button onclick="addProduct()">添加课程商品</button>
+          </div>
+          <div class="product-list" id="product-list"></div>
         </div>
 
-    </div>
+      </div>
 
-    <!-- 弹窗 -->
-    <div class="modal" id="course-modal">
+      <!-- 工作台弹窗 -->
+      <div class="modal" id="course-modal">
         <div class="modal-content">
-            <h3 style="margin-bottom: 8px;">编辑/修改课程占用</h3>
-            <p id="modal-time-title" style="font-size: 13px; color: var(--text-muted); margin-bottom: 12px;"></p>
-            <select id="modal-class-select" style="width: 100%; margin-bottom: 12px;"></select>
-            
-            <div class="quick-milestone-box" id="quick-milestone-area">
-                <p>🚩 将此日期（<span id="modal-date-display"></span>）直接标注为：</p>
-                <div class="quick-btn-group">
-                    <button style="background: #16a34a;" onclick="quickMarkMilestone('开班')">🟢 开班</button>
-                    <button style="background: #eab308;" onclick="quickMarkMilestone('半期')">🟡 半期</button>
-                    <button style="background: #dc2626;" onclick="quickMarkMilestone('结课')">🔴 结课</button>
-                </div>
+          <h3 style="margin-bottom: 8px;">编辑/修改课程占用</h3>
+          <p id="modal-time-title" style="font-size: 13px; color: var(--text-muted); margin-bottom: 12px;"></p>
+          <select id="modal-class-select" style="width: 100%; margin-bottom: 12px;"></select>
+          
+          <div class="quick-milestone-box" id="quick-milestone-area">
+            <p>🚩 将此日期（<span id="modal-date-display"></span>）直接标注为：</p>
+            <div class="quick-btn-group">
+              <button style="background: #16a34a;" onclick="quickMarkMilestone('开班')">🟢 开班</button>
+              <button style="background: #eab308;" onclick="quickMarkMilestone('半期')">🟡 半期</button>
+              <button style="background: #dc2626;" onclick="quickMarkMilestone('结课')">🔴 结课</button>
             </div>
+          </div>
 
-            <div class="modal-actions">
-                <button style="background: #e74c3c; float: left;" onclick="clearSingleSlot()">清空此节点</button>
-                <button style="background: #94a3b8;" onclick="closeModal()">取消</button>
-                <button onclick="saveSingleSlot()">保存</button>
-            </div>
+          <div class="modal-actions">
+            <button style="background: #e74c3c; float: left;" onclick="clearSingleSlot()">清空此节点</button>
+            <button style="background: #94a3b8;" onclick="closeModalWs()">取消</button>
+            <button onclick="saveSingleSlot()">保存</button>
+          </div>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- =========================================================
+       页面 2: 教师月度排课看板 (原 HTML 1)
+       ========================================================= -->
+  <div id="view-teacher" class="page-view-container">
+    <div class="container">
+      <!-- 顶部操作栏 -->
+      <div class="header">
+        <div class="brand-title">
+          🌸 ZERO日本語・日本留学 <span>教师月度排课看板</span>
+        </div>
+        <div class="btn-group">
+          <button id="btnUndo" onclick="undoActionTeacher()" disabled title="撤销上一次操作">↩️ 撤销</button>
+          <button id="btnRedo" onclick="redoActionTeacher()" disabled title="恢复上一步撤销的操作">↪️ 恢复</button>
+          <button class="primary" onclick="openBatchModalTeacher()">⚡ 批量排课</button>
+          <button onclick="openAddCourseModalTeacher()">+ 单独排课</button>
+          <button onclick="openStudentManagerModalTeacher()">👥 学员标识与管理</button>
+          <button onclick="openPublicHolidayModalTeacher()">🎌 机构公休日</button>
+          <button onclick="openEditRestModalTeacher()">⚙️ 教师休息日 (日历多选)</button>
+          <button onclick="openAddTeacherModalTeacher()">+ 添加老师</button>
+          <button onclick="deleteCurrentTeacherBtnTeacher()" style="color:#dc2626; border-color:#fca5a5;" title="删除当前正在查看的老师">🗑️ 删除当前老师</button>
+          <button onclick="exportDataTeacher()">💾 备份数据</button>
+          <button onclick="document.getElementById('importFileTeacher').click()">📂 导入备份</button>
+          <input type="file" id="importFileTeacher" style="display:none" onchange="importDataTeacher(event)">
+        </div>
+      </div>
+
+      <!-- 教师面板与月份翻页 -->
+      <div class="control-panel">
+        <div class="teacher-tabs" id="teacherTabs"></div>
+        
+        <div class="month-nav">
+          <span>月份:</span>
+          <button onclick="prevMonthTeacher()">◀ 上个月</button>
+          <input type="month" id="monthPickerTeacher" onchange="changeMonthTeacher(this.value)">
+          <button onclick="nextMonthTeacher()">下个月 ▶</button>
+        </div>
+
+        <div class="stats-bar">
+          <div>当月公休日: <span id="statPublicRest" style="color:var(--public-rest-text); font-weight:600;">0</span> 天</div>
+          <div>实际工作日: <span id="statWorkDays">0</span> 天</div>
+          <div>应出勤工时: <span id="statTotalHours">0</span> h</div>
+          <div>已排课课时: <span id="statBookedHours">0</span> h</div>
+          <div>排课率: <strong id="statRate">0%</strong></div>
+        </div>
+      </div>
+
+      <!-- 当前教师专属三分类学员看板 -->
+      <div class="student-categories-panel" id="studentCategoriesPanel"></div>
+
+      <!-- 月视图日历表格 -->
+      <div class="table-container" id="calendarContainerTeacher"></div>
     </div>
 
-    <script>
-        // Supabase 云端凭证配置
-        const SUPABASE_URL = 'https://qtjqqxbyussppagddket.supabase.co';
-        const SUPABASE_KEY = 'sb_publishable_1FsnKarSCrEwwpmm-Fm-mg_g3owbnp-';
-        const client = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    <!-- 批量排课弹窗 -->
+    <div class="modal" id="batchModalTeacher">
+      <div class="modal-content">
+        <div class="modal-title">
+          <span>批量排课配置</span>
+          <span style="font-size:12px; font-weight:normal; color:#64748b;">(自动顺延跳过公休日与休息日)</span>
+        </div>
 
-        let scheduleData = {};
-        let holidays = {};
-        let classes = [];
-        let milestones = [];
-        let products = [];
-        let countdowns = [];
+        <div class="form-row">
+          <label class="required">选择学员:</label>
+          <div class="form-control-wrap">
+            <select id="batchStudentSelectTeacher" style="width: 100%;"></select>
+          </div>
+        </div>
 
-        let activeCellKey = null;
-        let activeDateKey = null;
-        let previousScheduleBackup = null;
+        <div class="form-row">
+          <label class="required">开课时间:</label>
+          <div class="form-control-wrap">
+            <input type="date" id="batchStartDateTeacher">
+            <input type="time" id="batchStartTimeTeacher" value="09:00" onchange="calculateBatchEndTimeTeacher()">
+          </div>
+        </div>
 
-        function loadAllStorageData() {
-            let combinedSchedule = {};
-            let combinedHolidays = {};
-            let combinedClasses = [];
-            let combinedMilestones = [];
-            let combinedProducts = [];
-            let combinedCountdowns = [];
+        <div class="form-row">
+          <label class="required">课堂时长:</label>
+          <div class="form-control-wrap">
+            <select id="batchDurationHTeacher" onchange="calculateBatchEndTimeTeacher()">
+              <option value="0">0</option>
+              <option value="1" selected>1</option>
+              <option value="2">2</option>
+              <option value="3">3</option>
+              <option value="4">4</option>
+              <option value="5">5</option>
+              <option value="6">6</option>
+            </select> 小时
+            <select id="batchDurationMTeacher" onchange="calculateBatchEndTimeTeacher()">
+              <option value="0">0</option>
+              <option value="5">5</option>
+              <option value="10">10</option>
+              <option value="15">15</option>
+              <option value="20">20</option>
+              <option value="25">25</option>
+              <option value="30">30</option>
+              <option value="35">35</option>
+              <option value="40">40</option>
+              <option value="45" selected>45</option>
+              <option value="50">50</option>
+              <option value="55">55</option>
+            </select> 分钟
+            <span style="font-size: 12px; color: #64748b;" id="batchEndTimeLabelTeacher">下课时间: 09:45</span>
+          </div>
+        </div>
 
-            ['zero_schedule_v2', 'zero_schedule', 'scheduleData'].forEach(k => {
-                let raw = localStorage.getItem(k);
-                if (raw) {
-                    try { Object.assign(combinedSchedule, JSON.parse(raw)); } catch(e) {}
+        <div class="form-row">
+          <label class="required">课堂数量:</label>
+          <div class="form-control-wrap">
+            <input type="number" id="batchCountTeacher" value="10" min="1" max="50" style="width: 80px;">
+            <span style="font-size:12px; color:#64748b;">节 (单次最多50节)</span>
+          </div>
+        </div>
+
+        <div class="form-row" style="margin-bottom: 6px;">
+          <label class="required">排课规律:</label>
+          <div class="form-control-wrap">
+            <div class="weekday-selector" id="batchWeekdayGroupTeacher">
+              <button type="button" class="weekday-btn" onclick="toggleBatchWeekdayTeacher(1)">周一</button>
+              <button type="button" class="weekday-btn" onclick="toggleBatchWeekdayTeacher(2)">周二</button>
+              <button type="button" class="weekday-btn" onclick="toggleBatchWeekdayTeacher(3)">周三</button>
+              <button type="button" class="weekday-btn" onclick="toggleBatchWeekdayTeacher(4)">周四</button>
+              <button type="button" class="weekday-btn" onclick="toggleBatchWeekdayTeacher(5)">周五</button>
+              <button type="button" class="weekday-btn" onclick="toggleBatchWeekdayTeacher(6)">周六</button>
+              <button type="button" class="weekday-btn" onclick="toggleBatchWeekdayTeacher(0)">周日</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button onclick="closeModalTeacher('batchModalTeacher')">取消</button>
+          <button class="primary" onclick="applyBatchRuleBookingTeacher()">开始批量生成</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 单独添加/编辑课程弹窗 -->
+    <div class="modal" id="addCourseModalTeacher">
+      <div class="modal-content">
+        <div class="modal-title">
+          <span id="courseModalHeaderTeacher">添加课程排课</span>
+          <button onclick="deleteCurrentCourseTeacher()" id="btnDeleteCourseTeacher" style="display:none; color:#dc2626; border-color:#fca5a5;">删除此课</button>
+        </div>
+
+        <input type="hidden" id="editCourseIdTeacher">
+        <div class="form-row">
+          <label class="required">选择学员:</label>
+          <div class="form-control-wrap">
+            <select id="courseStudentSelectTeacher" style="width: 100%;"></select>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <label class="required">上课日期:</label>
+          <div class="form-control-wrap">
+            <input type="date" id="courseDateTeacher" style="width: 100%;">
+          </div>
+        </div>
+
+        <div class="form-row">
+          <label class="required">上课时间:</label>
+          <div class="form-control-wrap">
+            <input type="time" id="courseStartTimeTeacher" value="09:00">
+            <span>至</span>
+            <input type="time" id="courseEndTimeTeacher" value="10:00">
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button onclick="closeModalTeacher('addCourseModalTeacher')">取消</button>
+          <button class="primary" onclick="saveSingleCourseTeacher()">保存排课</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 学员管理与状态标识弹窗 -->
+    <div class="modal" id="studentManagerModalTeacher">
+      <div class="modal-content">
+        <div class="modal-title">
+          <span id="studentModalTitleTeacher">管理学员与状态</span>
+        </div>
+        
+        <div style="display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap;">
+          <input type="text" id="newStudentNameInputTeacher" placeholder="输入学员姓名/班级 (如: 若希)" style="flex:1; min-width: 140px;">
+          <input type="color" id="newStudentColorInputTeacher" value="#fef08a" title="选择学员专属颜色" style="width: 40px; height: 34px; padding: 2px;">
+          <button class="primary" onclick="addStudentToCurrentTeacherTeacher()">+ 添加学员</button>
+        </div>
+
+        <div class="student-manage-list" id="studentManageListContainerTeacher"></div>
+
+        <div class="modal-footer">
+          <button class="primary" onclick="closeModalTeacher('studentManagerModalTeacher')">完成</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 公休日弹窗 -->
+    <div class="modal" id="publicHolidayModalTeacher">
+      <div class="modal-content" style="width: 460px;">
+        <div class="modal-title">
+          <span>🎌 设置机构统一公休日</span>
+        </div>
+        
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+          <span style="font-size:13px; font-weight:600;">点击日历方格切换公休状态:</span>
+          <input type="month" id="holidayPickerMonthTeacher" onchange="renderHolidayCalendarTeacher()" style="padding:2px 6px; font-size:12px;">
+        </div>
+
+        <div id="holidayCalendarWrapTeacher"></div>
+
+        <div style="font-size:12px; color:#64748b; margin-top:8px;">
+          * 红色高亮并带 🎌 标记的日期即为公休日，所有老师当天整列锁定休息。
+        </div>
+
+        <div class="modal-footer">
+          <button class="primary" onclick="closeModalTeacher('publicHolidayModalTeacher')">完成</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 教师休息日日历多选弹窗 -->
+    <div class="modal" id="editRestModalTeacher">
+      <div class="modal-content" style="width: 500px;">
+        <div class="modal-title">
+          <span id="teacherRestModalTitleTeacher">⚙️ 设置教师休息日 (日历多选)</span>
+        </div>
+
+        <div class="form-row" style="margin-bottom: 8px;">
+          <label style="width: 80px;">1. 常规周休:</label>
+          <div class="form-control-wrap">
+            <div class="weekday-selector" id="editRestGroupTeacher">
+              <button type="button" class="weekday-btn" data-day="1" onclick="toggleWeekRestBtnTeacher(this, 1)">周一</button>
+              <button type="button" class="weekday-btn" data-day="2" onclick="toggleWeekRestBtnTeacher(this, 2)">周二</button>
+              <button type="button" class="weekday-btn" data-day="3" onclick="toggleWeekRestBtnTeacher(this, 3)">周三</button>
+              <button type="button" class="weekday-btn" data-day="4" onclick="toggleWeekRestBtnTeacher(this, 4)">周四</button>
+              <button type="button" class="weekday-btn" data-day="5" onclick="toggleWeekRestBtnTeacher(this, 5)">周五</button>
+              <button type="button" class="weekday-btn" data-day="6" onclick="toggleWeekRestBtnTeacher(this, 6)">周六</button>
+              <button type="button" class="weekday-btn" data-day="0" onclick="toggleWeekRestBtnTeacher(this, 0)">周日</button>
+            </div>
+          </div>
+        </div>
+
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-top: 12px; margin-bottom:6px;">
+          <span style="font-size:13px; font-weight:600; color:#334155;">2. 日历直接点击设定特定休息日/上班日:</span>
+          <input type="month" id="teacherRestPickerMonthTeacher" onchange="renderTeacherRestCalendarTeacher()" style="padding:2px 6px; font-size:12px;">
+        </div>
+
+        <div id="teacherRestCalendarWrapTeacher"></div>
+
+        <div style="font-size:12px; color:#64748b; margin-top:8px;">
+          * 绿色带 ♨ 的日期为休息日。点击任意日期方格可直接切换【休息/上班】状态。
+        </div>
+
+        <div class="modal-footer">
+          <button class="primary" onclick="closeModalTeacher('editRestModalTeacher')">完成设置</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 添加新老师弹窗 -->
+    <div class="modal" id="addTeacherModalTeacher">
+      <div class="modal-content">
+        <div class="modal-title">添加新老师</div>
+        <div class="form-row">
+          <label class="required">老师姓名:</label>
+          <div class="form-control-wrap">
+            <input type="text" id="newTeacherNameTeacher" placeholder="例如：若希老师" style="width:100%;">
+          </div>
+        </div>
+        <div class="form-row">
+          <label>常规周休:</label>
+          <div class="form-control-wrap">
+            <div class="weekday-selector" id="newTeacherRestGroupTeacher">
+              <button type="button" class="weekday-btn" data-day="1" onclick="toggleBtnSelectTeacher(this)">周一</button>
+              <button type="button" class="weekday-btn" data-day="2" onclick="toggleBtnSelectTeacher(this)">周二</button>
+              <button type="button" class="weekday-btn" data-day="3" onclick="toggleBtnSelectTeacher(this)">周三</button>
+              <button type="button" class="weekday-btn" data-day="4" onclick="toggleBtnSelectTeacher(this)">周四</button>
+              <button type="button" class="weekday-btn" data-day="5" onclick="toggleBtnSelectTeacher(this)">周五</button>
+              <button type="button" class="weekday-btn" data-day="6" onclick="toggleBtnSelectTeacher(this)">周六</button>
+              <button type="button" class="weekday-btn" data-day="0" onclick="toggleBtnSelectTeacher(this)">周日</button>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button onclick="closeModalTeacher('addTeacherModalTeacher')">取消</button>
+          <button class="primary" onclick="saveTeacherTeacher()">保存</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // -------------------------------------------------------------
+    // 全局页面切换控制
+    // -------------------------------------------------------------
+    function switchMainView(viewType) {
+      document.querySelectorAll('.page-view-container').forEach(el => el.classList.remove('active-view'));
+      document.querySelectorAll('.main-tab-btn').forEach(btn => btn.classList.remove('active'));
+
+      if (viewType === 'workspace') {
+        document.getElementById('view-workspace').classList.add('active-view');
+        document.getElementById('btn-tab-workspace').classList.add('active');
+        renderCalendars();
+      } else {
+        document.getElementById('view-teacher').classList.add('active-view');
+        document.getElementById('btn-tab-teacher').classList.add('active');
+        renderTeacherApp();
+      }
+    }
+
+    // =============================================================
+    // 模块 1: ZERO 工作台 (Supabase + A/B 教室排课) 逻辑
+    // =============================================================
+    const SUPABASE_URL = 'https://qtjqqxbyussppagddket.supabase.co';
+    const SUPABASE_KEY = 'sb_publishable_1FsnKarSCrEwwpmm-Fm-mg_g3owbnp-';
+    const wsClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    let scheduleData = {};
+    let holidays = {};
+    let classes = [];
+    let milestones = [];
+    let products = [];
+    let countdowns = [];
+
+    let activeCellKey = null;
+    let activeDateKey = null;
+    let previousScheduleBackup = null;
+
+    function loadAllStorageData() {
+      let combinedSchedule = {};
+      let combinedHolidays = {};
+      let combinedClasses = [];
+      let combinedMilestones = [];
+      let combinedProducts = [];
+      let combinedCountdowns = [];
+
+      ['zero_schedule_v2', 'zero_schedule', 'scheduleData'].forEach(k => {
+        let raw = localStorage.getItem(k);
+        if (raw) {
+          try { Object.assign(combinedSchedule, JSON.parse(raw)); } catch(e) {}
+        }
+      });
+
+      ['zero_holidays', 'zero_holidays_v2', 'holidays'].forEach(k => {
+        let raw = localStorage.getItem(k);
+        if (raw) {
+          try { Object.assign(combinedHolidays, JSON.parse(raw)); } catch(e) {}
+        }
+      });
+
+      ['zero_classes', 'classes'].forEach(k => {
+        let raw = localStorage.getItem(k);
+        if (raw) {
+          try {
+            let parsed = JSON.parse(raw);
+            if (Array.isArray(parsed)) {
+              parsed.forEach(c => {
+                if (!combinedClasses.some(item => item.name === c.name)) {
+                  combinedClasses.push(c);
                 }
-            });
-
-            ['zero_holidays', 'zero_holidays_v2', 'holidays'].forEach(k => {
-                let raw = localStorage.getItem(k);
-                if (raw) {
-                    try { Object.assign(combinedHolidays, JSON.parse(raw)); } catch(e) {}
-                }
-            });
-
-            ['zero_classes', 'classes'].forEach(k => {
-                let raw = localStorage.getItem(k);
-                if (raw) {
-                    try {
-                        let parsed = JSON.parse(raw);
-                        if (Array.isArray(parsed)) {
-                            parsed.forEach(c => {
-                                if (!combinedClasses.some(item => item.name === c.name)) {
-                                    combinedClasses.push(c);
-                                }
-                            });
-                        }
-                    } catch(e) {}
-                }
-            });
-
-            Object.values(combinedSchedule).forEach(name => {
-                if (name && typeof name === 'string' && !combinedClasses.some(c => c.name === name)) {
-                    combinedClasses.push({ name: name, color: '#3b82f6' });
-                }
-            });
-
-            if (combinedClasses.length === 0) {
-                combinedClasses = [
-                    { name: 'N1名师班', color: '#e74c3c' },
-                    { name: 'N2精品班', color: '#3498db' },
-                    { name: '留考EJU专攻', color: '#9b59b6' }
-                ];
+              });
             }
+          } catch(e) {}
+        }
+      });
 
-            ['zero_milestones', 'milestones'].forEach(k => {
-                let raw = localStorage.getItem(k);
-                if (raw) {
-                    try {
-                        let parsed = JSON.parse(raw);
-                        if (Array.isArray(parsed)) combinedMilestones = parsed;
-                    } catch(e) {}
-                }
-            });
+      Object.values(combinedSchedule).forEach(name => {
+        if (name && typeof name === 'string' && !combinedClasses.some(c => c.name === name)) {
+          combinedClasses.push({ name: name, color: '#3b82f6' });
+        }
+      });
 
-            ['zero_products', 'products'].forEach(k => {
-                let raw = localStorage.getItem(k);
-                if (raw) {
-                    try {
-                        let parsed = JSON.parse(raw);
-                        if (Array.isArray(parsed)) combinedProducts = parsed;
-                    } catch(e) {}
-                }
-            });
+      if (combinedClasses.length === 0) {
+        combinedClasses = [
+          { name: 'N1名师班', color: '#e74c3c' },
+          { name: 'N2精品班', color: '#3498db' },
+          { name: '留考EJU专攻', color: '#9b59b6' }
+        ];
+      }
 
-            let savedCountdownsRaw = localStorage.getItem('zero_custom_countdowns');
-            if (savedCountdownsRaw) {
-                try { combinedCountdowns = JSON.parse(savedCountdownsRaw); } catch(e) {}
+      ['zero_milestones', 'milestones'].forEach(k => {
+        let raw = localStorage.getItem(k);
+        if (raw) {
+          try {
+            let parsed = JSON.parse(raw);
+            if (Array.isArray(parsed)) combinedMilestones = parsed;
+          } catch(e) {}
+        }
+      });
+
+      ['zero_products', 'products'].forEach(k => {
+        let raw = localStorage.getItem(k);
+        if (raw) {
+          try {
+            let parsed = JSON.parse(raw);
+            if (Array.isArray(parsed)) combinedProducts = parsed;
+          } catch(e) {}
+        }
+      });
+
+      let savedCountdownsRaw = localStorage.getItem('zero_custom_countdowns');
+      if (savedCountdownsRaw) {
+        try { combinedCountdowns = JSON.parse(savedCountdownsRaw); } catch(e) {}
+      } else {
+        let reg = localStorage.getItem('zero_timer_reg');
+        let exam = localStorage.getItem('zero_timer_exam');
+        let score = localStorage.getItem('zero_timer_score');
+        if (reg) combinedCountdowns.push({ id: 1, name: 'JLPT 报名倒计时', targetTime: reg });
+        if (exam) combinedCountdowns.push({ id: 2, name: 'JLPT 考试倒计时', targetTime: exam });
+        if (score) combinedCountdowns.push({ id: 3, name: 'JLPT 查成绩倒计时', targetTime: score });
+      }
+
+      return {
+        scheduleData: combinedSchedule,
+        holidays: combinedHolidays,
+        classes: combinedClasses,
+        milestones: combinedMilestones,
+        products: combinedProducts,
+        countdowns: combinedCountdowns
+      };
+    }
+
+    async function syncToCloud() {
+      const badge = document.getElementById('sync-status');
+      if (badge) badge.innerText = '🔄 同步中...';
+
+      localStorage.setItem('zero_schedule_v2', JSON.stringify(scheduleData));
+      localStorage.setItem('zero_holidays', JSON.stringify(holidays));
+      localStorage.setItem('zero_classes', JSON.stringify(classes));
+      localStorage.setItem('zero_milestones', JSON.stringify(milestones));
+      localStorage.setItem('zero_products', JSON.stringify(products));
+      localStorage.setItem('zero_custom_countdowns', JSON.stringify(countdowns));
+
+      const fullState = { scheduleData, holidays, classes, milestones, products, countdowns };
+
+      try {
+        const { error } = await wsClient
+          .from('app_workspace_data')
+          .upsert({ id: 'workspace_main', data: fullState, updated_at: new Date().toISOString() });
+
+        if (error) throw error;
+        if (badge) badge.innerText = '🟢 云端已同步';
+      } catch (err) {
+        console.error('云端同步失败:', err);
+        if (badge) badge.innerText = '🟡 本地已存(云端重试中)';
+      }
+    }
+
+    async function fetchFromCloud() {
+      const badge = document.getElementById('sync-status');
+      try {
+        const { data, error } = await wsClient
+          .from('app_workspace_data')
+          .select('data')
+          .eq('id', 'workspace_main')
+          .single();
+
+        if (data && data.data) {
+          scheduleData = data.data.scheduleData || {};
+          holidays = data.data.holidays || {};
+          classes = data.data.classes || [];
+          milestones = data.data.milestones || [];
+          products = data.data.products || [];
+          countdowns = data.data.countdowns || [];
+
+          localStorage.setItem('zero_schedule_v2', JSON.stringify(scheduleData));
+          localStorage.setItem('zero_holidays', JSON.stringify(holidays));
+          localStorage.setItem('zero_classes', JSON.stringify(classes));
+          localStorage.setItem('zero_milestones', JSON.stringify(milestones));
+          localStorage.setItem('zero_products', JSON.stringify(products));
+          localStorage.setItem('zero_custom_countdowns', JSON.stringify(countdowns));
+
+          if (badge) badge.innerText = '🟢 云端已连接';
+        } else {
+          const localData = loadAllStorageData();
+          scheduleData = localData.scheduleData;
+          holidays = localData.holidays;
+          classes = localData.classes;
+          milestones = localData.milestones;
+          products = localData.products;
+          countdowns = localData.countdowns;
+          await syncToCloud();
+        }
+      } catch (err) {
+        console.warn('拉取云端数据失败，回退到本地缓存:', err);
+        const localData = loadAllStorageData();
+        scheduleData = localData.scheduleData;
+        holidays = localData.holidays;
+        classes = localData.classes;
+        milestones = localData.milestones;
+        products = localData.products;
+        countdowns = localData.countdowns;
+      }
+
+      renderAllComponents();
+    }
+
+    function renderAllComponents() {
+      renderCountdowns();
+      renderClasses();
+      renderMilestones();
+      renderHolidays();
+      renderCalendars();
+      renderProducts();
+    }
+
+    function deepScanAndRescue() {
+      const reloaded = loadAllStorageData();
+      scheduleData = reloaded.scheduleData;
+      holidays = reloaded.holidays;
+      classes = reloaded.classes;
+      milestones = reloaded.milestones;
+      products = reloaded.products;
+      countdowns = reloaded.countdowns;
+
+      syncToCloud();
+
+      let dates = Object.keys(scheduleData).map(k => k.split('_')[1]).filter(Boolean);
+      if (dates.length > 0) {
+        dates.sort();
+        let [y, m] = dates[0].split('-');
+        document.getElementById('year-select').value = parseInt(y);
+        document.getElementById('month-select').value = parseInt(m);
+      }
+
+      renderAllComponents();
+      let classCount = Object.keys(scheduleData).length;
+      let holidayCount = Object.keys(holidays).length;
+      alert(`🎉 扫描完成！共定位到已排课节数：${classCount} 节，班级：${classes.length} 个，节假日：${holidayCount} 天。已自动为您展示并推送到云端！`);
+    }
+
+    function formatDateStr(d) {
+      let year = d.getFullYear();
+      let month = (d.getMonth() + 1).toString().padStart(2, '0');
+      let date = d.getDate().toString().padStart(2, '0');
+      return `${year}-${month}-${date}`;
+    }
+
+    function getContrastYIQ(hexcolor){
+      if(!hexcolor || hexcolor.charAt(0) !== '#') return 'black';
+      hexcolor = hexcolor.replace("#", "");
+      if(hexcolor.length === 3) {
+        hexcolor = hexcolor.split('').map(c => c + c).join('');
+      }
+      var r = parseInt(hexcolor.substr(0,2),16);
+      var g = parseInt(hexcolor.substr(2,2),16);
+      var b = parseInt(hexcolor.substr(4,2),16);
+      var yiq = ((r*299)+(g*587)+(b*114))/1000;
+      return (yiq >= 128) ? '#2c3e50' : '#ffffff';
+    }
+
+    function exportDataBackup() {
+      const fullBackup = {
+        scheduleData,
+        holidays,
+        milestones,
+        classes,
+        products,
+        countdowns,
+        exportTime: new Date().toLocaleString()
+      };
+      const blob = new Blob([JSON.stringify(fullBackup, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `ZERO工作台备份_${formatDateStr(new Date())}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function importDataBackup(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = async function(e) {
+        try {
+          const data = JSON.parse(e.target.result);
+          if (data.scheduleData) scheduleData = data.scheduleData;
+          if (data.holidays) holidays = data.holidays;
+          if (data.milestones) milestones = data.milestones;
+          if (data.classes) classes = data.classes;
+          if (data.products) products = data.products;
+          if (data.countdowns) countdowns = data.countdowns;
+
+          await syncToCloud();
+          alert('🎉 备份数据已成功恢复并同步到云端！');
+          renderAllComponents();
+        } catch(err) {
+          alert('导入失败，文件格式不正确！');
+        }
+      };
+      reader.readAsText(file);
+      event.target.value = '';
+    }
+
+    function updateBJTime() {
+      const options = { timeZone: 'Asia/Shanghai', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false };
+      const formatter = new Intl.DateTimeFormat('zh-CN', options);
+      const timeElem = document.getElementById('bj-time');
+      if (timeElem) timeElem.innerText = '北京时间：' + formatter.format(new Date());
+    }
+    setInterval(updateBJTime, 1000);
+    updateBJTime();
+
+    function addCountdown() {
+      const nameInput = document.getElementById('new-countdown-name');
+      const timeInput = document.getElementById('new-countdown-time');
+      const name = nameInput.value.trim();
+      const targetTime = timeInput.value;
+
+      if (!name) { alert('请输入倒计时事件名称！'); return; }
+      if (!targetTime) { alert('请选择目标倒计时时间！'); return; }
+
+      countdowns.push({
+        id: Date.now(),
+        name: name,
+        targetTime: targetTime
+      });
+
+      syncToCloud();
+      nameInput.value = '';
+      timeInput.value = '';
+      renderCountdowns();
+    }
+
+    function deleteCountdown(id) {
+      countdowns = countdowns.filter(c => c.id !== id);
+      syncToCloud();
+      renderCountdowns();
+    }
+
+    function renderCountdowns() {
+      const container = document.getElementById('countdown-list');
+      container.innerHTML = '';
+
+      if (countdowns.length === 0) {
+        container.innerHTML = `<div style="font-size:13px; color:#6b7280; grid-column: 1/-1;">暂无倒计时项目，请在上方输入事件名称与时间进行添加。</div>`;
+        return;
+      }
+
+      countdowns.forEach(c => {
+        let card = document.createElement('div');
+        card.className = 'countdown-item';
+        card.innerHTML = `
+          <div class="countdown-header">
+            <h3 title="${c.name}">${c.name}</h3>
+            <button class="countdown-del-btn" title="删除此倒计时" onclick="deleteCountdown(${c.id})">✕</button>
+          </div>
+          <div class="countdown-target-time">目标时间: ${c.targetTime.replace('T', ' ')}</div>
+          <div class="timer-display" id="timer-display-${c.id}">计算中...</div>
+        `;
+        container.appendChild(card);
+      });
+      updateAllTimers();
+    }
+
+    function updateAllTimers() {
+      const now = new Date().getTime();
+      countdowns.forEach(c => {
+        const el = document.getElementById(`timer-display-${c.id}`);
+        if (!el) return;
+
+        const target = new Date(c.targetTime).getTime();
+        const diff = target - now;
+
+        if (diff > 0) {
+          const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+          const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+          const mins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+          const secs = Math.floor((diff % (1000 * 60)) / 1000);
+          el.innerText = `${days}天 ${hours}时 ${mins}分 ${secs}秒`;
+        } else {
+          el.innerText = "已截止 / 已开始";
+        }
+      });
+    }
+    setInterval(updateAllTimers, 1000);
+
+    function addClass() {
+      const name = document.getElementById('class-name').value.trim();
+      const color = document.getElementById('class-color').value;
+
+      if (!name) { alert('请输入班级名称！'); return; }
+      if (classes.some(c => c.name === name)) { alert('该班级名称已存在！'); return; }
+
+      classes.push({ name, color });
+      syncToCloud();
+      document.getElementById('class-name').value = '';
+      renderClasses();
+    }
+
+    function deleteClass(index) {
+      let targetName = classes[index].name;
+      if(confirm(`确定删除班级“${targetName}”吗？\n（注：删除班级不会自动清空课表，如需清空排课请点击“清空排课”）`)){
+        classes.splice(index, 1);
+        syncToCloud();
+        renderClasses();
+        renderCalendars();
+      }
+    }
+
+    function clearAllScheduleForClass(className) {
+      if (!confirm(`⚠️ 确定要清空【${className}】在 A/B 教室的所有排课吗？`)) {
+        return;
+      }
+
+      previousScheduleBackup = JSON.parse(JSON.stringify(scheduleData));
+      document.getElementById('undo-btn').disabled = false;
+
+      let clearedCount = 0;
+      Object.keys(scheduleData).forEach(key => {
+        if (scheduleData[key] === className) {
+          delete scheduleData[key];
+          clearedCount++;
+        }
+      });
+
+      milestones = milestones.filter(m => m.className !== className);
+      syncToCloud();
+
+      alert(`已成功清空【${className}】的全部排课（共清除 ${clearedCount} 节课）。`);
+      renderMilestones();
+      renderCalendars();
+    }
+
+    function renderClasses() {
+      const container = document.getElementById('class-tags');
+      const batchSelect = document.getElementById('batch-class-select');
+      const milestoneSelect = document.getElementById('milestone-class-select');
+      const modalSelect = document.getElementById('modal-class-select');
+
+      container.innerHTML = '';
+      batchSelect.innerHTML = '<option value="">-- 选择班级 --</option>';
+      milestoneSelect.innerHTML = '<option value="">-- 选择班级 --</option>';
+      modalSelect.innerHTML = '<option value="">-- 选择班级 (或不占用) --</option>';
+
+      classes.forEach((c, index) => {
+        let tag = document.createElement('div');
+        tag.className = 'class-badge';
+        let textColor = getContrastYIQ(c.color);
+        tag.style.backgroundColor = c.color;
+        tag.style.color = textColor;
+        
+        tag.innerHTML = `
+          <span>${c.name}</span>
+          <span class="class-action-btn" title="一键清空该班级所有排课" onclick="clearAllScheduleForClass('${c.name}')">🗑️ 清空排课</span>
+          <span class="class-action-btn" title="删除班级" onclick="deleteClass(${index})">✕</span>
+        `;
+        container.appendChild(tag);
+
+        batchSelect.appendChild(new Option(c.name, c.name));
+        milestoneSelect.appendChild(new Option(c.name, c.name));
+        modalSelect.appendChild(new Option(c.name, c.name));
+      });
+    }
+
+    function getRoomsForClass(className) {
+      let rooms = new Set();
+      Object.keys(scheduleData).forEach(slotKey => {
+        if (scheduleData[slotKey] === className) {
+          if (slotKey.startsWith('A_')) rooms.add('A');
+          if (slotKey.startsWith('B_')) rooms.add('B');
+        }
+      });
+      return Array.from(rooms);
+    }
+
+    function addMilestone() {
+      const className = document.getElementById('milestone-class-select').value;
+      const type = document.getElementById('milestone-type-select').value;
+      const dateKey = document.getElementById('milestone-date').value;
+
+      if(!className) { alert('请选择班级！'); return; }
+      if(!dateKey) { alert('请选择节点日期！'); return; }
+
+      saveMilestoneDirectly(className, type, dateKey);
+    }
+
+    function saveMilestoneDirectly(className, type, dateKey) {
+      let newItem = {
+        id: Date.now(),
+        className,
+        type,
+        dateKey
+      };
+
+      milestones.push(newItem);
+      milestones.sort((a, b) => a.dateKey.localeCompare(b.dateKey));
+
+      syncToCloud();
+      renderMilestones();
+      renderCalendars();
+    }
+
+    function deleteMilestone(id) {
+      milestones = milestones.filter(m => m.id !== id);
+      syncToCloud();
+      renderMilestones();
+      renderCalendars();
+    }
+
+    function renderMilestones() {
+      const container = document.getElementById('milestone-summary-list');
+      container.innerHTML = '';
+
+      if (milestones.length === 0) {
+        container.innerHTML = `<div style="font-size:13px; color:#6b7280;">暂无标记节点，您可在点击日历排课块时一键标记，或在上方选班标注“开班”、“半期”、“结课”。</div>`;
+        return;
+      }
+
+      milestones.forEach(m => {
+        let targetRooms = getRoomsForClass(m.className);
+        let roomDesc = targetRooms.length > 0 ? ` (教室 ${targetRooms.join('/')})` : '';
+
+        let card = document.createElement('div');
+        card.className = `milestone-card type-${m.type}`;
+        card.innerHTML = `
+          <div>
+            <strong>${m.dateKey}</strong>
+            <span style="margin: 0 4px; color:#4b5563;">${m.className}${roomDesc}</span>
+          </div>
+          <div style="display:flex; align-items:center;">
+            <span class="milestone-tag-badge badge-${m.type}">${m.type}</span>
+            <span class="milestone-del-btn" title="删除节点" onclick="deleteMilestone(${m.id})">✕</span>
+          </div>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    function addHoliday() {
+      const startStr = document.getElementById('holiday-start').value;
+      const endStr = document.getElementById('holiday-end').value || startStr;
+      const name = document.getElementById('holiday-name').value.trim() || '休假';
+
+      if (!startStr) { alert('请选择开始日期！'); return; }
+      let curr = new Date(startStr);
+      let end = new Date(endStr);
+      if (curr > end) { alert('开始日期不能晚于结束日期！'); return; }
+
+      while (curr <= end) {
+        let dateKey = formatDateStr(curr);
+        holidays[dateKey] = name;
+        curr.setDate(curr.getDate() + 1);
+      }
+
+      syncToCloud();
+      renderHolidays();
+      renderCalendars();
+    }
+
+    function deleteHoliday(dateKey) {
+      delete holidays[dateKey];
+      syncToCloud();
+      renderHolidays();
+      renderCalendars();
+    }
+
+    function renderHolidays() {
+      const container = document.getElementById('holiday-tags');
+      container.innerHTML = '';
+      Object.keys(holidays).sort().forEach(dateKey => {
+        let tag = document.createElement('div');
+        tag.className = 'tag-item';
+        tag.innerHTML = `${dateKey} (${holidays[dateKey]}) <span onclick="deleteHoliday('${dateKey}')">✕</span>`;
+        container.appendChild(tag);
+      });
+    }
+
+    function batchBookWeekly(isOverwrite = false) {
+      const className = document.getElementById('batch-class-select').value;
+      const startStr = document.getElementById('batch-start').value;
+      const period = document.getElementById('batch-period').value;
+      const room = document.getElementById('batch-room').value;
+      const count = parseInt(document.getElementById('batch-count').value);
+
+      const checkedWeeks = Array.from(document.querySelectorAll('input[name="batch-week"]:checked')).map(cb => parseInt(cb.value));
+
+      if (!className) { alert('请先选择要排课的班级！'); return; }
+      if (!startStr) { alert('请选择开始日期！'); return; }
+      if (checkedWeeks.length === 0) { alert('请至少勾选一个每周上课的星期！'); return; }
+      if (!count || count <= 0) { alert('请填写有效的总课次数！'); return; }
+
+      if (isOverwrite) {
+        if (!confirm(`⚠️ 确定要重新规划【${className}】的排课吗？`)) return;
+      }
+
+      let curr = new Date(startStr);
+      let simulatedSlots = [];
+      let conflictDetails = [];
+      let skippedDates = [];
+
+      let tempSchedule = JSON.parse(JSON.stringify(scheduleData));
+      if (isOverwrite) {
+        Object.keys(tempSchedule).forEach(key => {
+          if (tempSchedule[key] === className) delete tempSchedule[key];
+        });
+      }
+
+      while (simulatedSlots.length < count) {
+        let dayOfWeek = curr.getDay(); 
+        if (checkedWeeks.includes(dayOfWeek)) {
+          let dateKey = formatDateStr(curr);
+          if (holidays[dateKey]) {
+            skippedDates.push(`${dateKey}(${holidays[dateKey]})`);
+          } else {
+            let slotKey = `${room}_${dateKey}_${period}`;
+            if (tempSchedule[slotKey] && tempSchedule[slotKey] !== className) {
+              conflictDetails.push(`• ${dateKey} ${period}：已被【${tempSchedule[slotKey]}】占用`);
+            }
+            simulatedSlots.push(slotKey);
+          }
+        }
+        curr.setDate(curr.getDate() + 1);
+      }
+
+      if (conflictDetails.length > 0) {
+        let warningMsg = `⚠️ 排课冲突警告！在 教室 ${room} 发现以下 ${conflictDetails.length} 处时间冲突：\n\n` +
+                         conflictDetails.slice(0, 10).join('\n') + 
+                         (conflictDetails.length > 10 ? `\n...等共 ${conflictDetails.length} 处冲突` : '') +
+                         `\n\n请选择：\n【确定】强行覆盖已有课程\n【取消】放弃排课并手动调整`;
+        
+        if (!confirm(warningMsg)) return;
+      }
+
+      previousScheduleBackup = JSON.parse(JSON.stringify(scheduleData));
+      document.getElementById('undo-btn').disabled = false;
+
+      if (isOverwrite) {
+        Object.keys(scheduleData).forEach(key => {
+          if (scheduleData[key] === className) {
+            delete scheduleData[key];
+          }
+        });
+      }
+
+      simulatedSlots.forEach(slotKey => {
+        scheduleData[slotKey] = className;
+      });
+
+      syncToCloud();
+      let actionText = isOverwrite ? "重新规划完成" : "排课成功";
+      let msg = `${actionText}！已为【${className}】在 教室 ${room} 顺利排入 ${count} 次课。`;
+      if (conflictDetails.length > 0) msg += `\n（已按指令覆盖冲突排课）`;
+      if (skippedDates.length > 0) msg += `\n期间自动跳过 ${skippedDates.length} 天节假日。`;
+      alert(msg);
+      renderMilestones();
+      renderCalendars();
+    }
+
+    function undoLastBatch() {
+      if (!previousScheduleBackup) return;
+
+      if (confirm('确认要撤销上一次的操作吗？课表将恢复到操作前。')) {
+        scheduleData = JSON.parse(JSON.stringify(previousScheduleBackup));
+        syncToCloud();
+        previousScheduleBackup = null;
+        document.getElementById('undo-btn').disabled = true;
+        alert('已成功撤销上一次操作！');
+        renderMilestones();
+        renderCalendars();
+      }
+    }
+
+    function initMonthPicker() {
+      const yearSelect = document.getElementById('year-select');
+      const monthSelect = document.getElementById('month-select');
+      const now = new Date();
+
+      let targetYear = now.getFullYear();
+      let targetMonth = now.getMonth() + 1;
+
+      let dates = Object.keys(scheduleData).map(k => k.split('_')[1]).filter(Boolean);
+      if (dates.length > 0) {
+        dates.sort();
+        let [y, m] = dates[0].split('-');
+        targetYear = parseInt(y);
+        targetMonth = parseInt(m);
+      }
+
+      yearSelect.innerHTML = '';
+      monthSelect.innerHTML = '';
+
+      for(let y = now.getFullYear() - 1; y <= now.getFullYear() + 2; y++) {
+        let opt = document.createElement('option');
+        opt.value = y; opt.innerText = y + '年';
+        if(y === targetYear) opt.selected = true;
+        yearSelect.appendChild(opt);
+      }
+
+      for(let m = 1; m <= 12; m++) {
+        let opt = document.createElement('option');
+        opt.value = m; opt.innerText = m + '月';
+        if(m === targetMonth) opt.selected = true;
+        monthSelect.appendChild(opt);
+      }
+    }
+
+    function goCurrentMonth() {
+      const now = new Date();
+      document.getElementById('year-select').value = now.getFullYear();
+      document.getElementById('month-select').value = now.getMonth() + 1;
+      renderCalendars();
+    }
+
+    function renderCalendars() {
+      const yearElem = document.getElementById('year-select');
+      const monthElem = document.getElementById('month-select');
+      if (!yearElem || !monthElem || !yearElem.value) return;
+
+      const year = parseInt(yearElem.value);
+      const month = parseInt(monthElem.value);
+      
+      let firstDayIndex = new Date(year, month - 1, 1).getDay();
+      let startOffset = firstDayIndex === 0 ? 6 : firstDayIndex - 1;
+      let daysInMonth = new Date(year, month, 0).getDate();
+
+      let monthPrefix = `${year}-${month.toString().padStart(2, '0')}`;
+      let currentMonthLessons = Object.keys(scheduleData).filter(k => k.includes(monthPrefix)).length;
+      document.getElementById('data-stats-hint').innerText = `📊 本月已排课：${currentMonthLessons} 节 | 系统总排课：${Object.keys(scheduleData).length} 节`;
+
+      let gridDays = [];
+      for (let i = 0; i < startOffset; i++) {
+        gridDays.push({ type: 'empty' });
+      }
+      for (let d = 1; d <= daysInMonth; d++) {
+        let dateKey = `${year}-${month.toString().padStart(2, '0')}-${d.toString().padStart(2, '0')}`;
+        gridDays.push({ type: 'day', dayNum: d, dateKey: dateKey, holidayName: holidays[dateKey] || null });
+      }
+      while (gridDays.length % 7 !== 0) {
+        gridDays.push({ type: 'empty' });
+      }
+
+      const periods = ['上午', '下午', '晚上'];
+
+      const badgeIconMap = {
+        '开班': { icon: '🟢开', bg: '#16a34a' },
+        '半期': { icon: '🟡半', bg: '#eab308' },
+        '结课': { icon: '🔴结', bg: '#dc2626' }
+      };
+
+      ['A', 'B'].forEach(room => {
+        const table = document.getElementById(`table-room${room}`);
+        if (!table) return;
+        let html = `
+          <thead>
+            <tr>
+              <th>一</th><th>二</th><th>三</th><th>四</th><th>五</th>
+              <th class="weekend">六</th><th class="weekend">日</th>
+            </tr>
+          </thead>
+          <tbody>
+        `;
+
+        for (let i = 0; i < gridDays.length; i += 7) {
+          html += '<tr>';
+          for (let j = 0; j < 7; j++) {
+            let item = gridDays[i + j];
+            if (item.type === 'empty') {
+              html += '<td class="day-cell other-month"></td>';
             } else {
-                let reg = localStorage.getItem('zero_timer_reg');
-                let exam = localStorage.getItem('zero_timer_exam');
-                let score = localStorage.getItem('zero_timer_score');
-                if (reg) combinedCountdowns.push({ id: 1, name: 'JLPT 报名倒计时', targetTime: reg });
-                if (exam) combinedCountdowns.push({ id: 2, name: 'JLPT 考试倒计时', targetTime: exam });
-                if (score) combinedCountdowns.push({ id: 3, name: 'JLPT 查成绩倒计时', targetTime: score });
-            }
+              let isHoliday = !!item.holidayName;
 
-            return {
-                scheduleData: combinedSchedule,
-                holidays: combinedHolidays,
-                classes: combinedClasses,
-                milestones: combinedMilestones,
-                products: combinedProducts,
-                countdowns: combinedCountdowns
-            };
-        }
+              let dayMilestones = milestones.filter(m => {
+                if (m.dateKey !== item.dateKey) return false;
+                let roomsForClass = getRoomsForClass(m.className);
+                return roomsForClass.includes(room) || roomsForClass.length === 0;
+              });
 
-        // 云端同步与持久化
-        async function syncToCloud() {
-            const badge = document.getElementById('sync-status');
-            if (badge) badge.innerText = '🔄 同步中...';
+              html += `<td class="day-cell ${isHoliday ? 'is-holiday' : ''}">`;
+              html += `<div class="day-number">
+                        <span>${item.dayNum}</span>
+                        ${isHoliday ? `<span class="holiday-label">${item.holidayName}</span>` : ''}
+                       </div>`;
 
-            localStorage.setItem('zero_schedule_v2', JSON.stringify(scheduleData));
-            localStorage.setItem('zero_holidays', JSON.stringify(holidays));
-            localStorage.setItem('zero_classes', JSON.stringify(classes));
-            localStorage.setItem('zero_milestones', JSON.stringify(milestones));
-            localStorage.setItem('zero_products', JSON.stringify(products));
-            localStorage.setItem('zero_custom_countdowns', JSON.stringify(countdowns));
+              periods.forEach(p => {
+                let slotKey = `${room}_${item.dateKey}_${p}`;
+                let className = scheduleData[slotKey] || '';
+                let isOccupied = className !== '';
 
-            const fullState = { scheduleData, holidays, classes, milestones, products, countdowns };
-
-            try {
-                const { error } = await client
-                    .from('app_workspace_data')
-                    .upsert({ id: 'workspace_main', data: fullState, updated_at: new Date().toISOString() });
-
-                if (error) throw error;
-                if (badge) badge.innerText = '🟢 云端已同步';
-            } catch (err) {
-                console.error('云端同步失败:', err);
-                if (badge) badge.innerText = '🟡 本地已存(云端重试中)';
-            }
-        }
-
-        async function fetchFromCloud() {
-            const badge = document.getElementById('sync-status');
-            try {
-                const { data, error } = await client
-                    .from('app_workspace_data')
-                    .select('data')
-                    .eq('id', 'workspace_main')
-                    .single();
-
-                if (data && data.data) {
-                    scheduleData = data.data.scheduleData || {};
-                    holidays = data.data.holidays || {};
-                    classes = data.data.classes || [];
-                    milestones = data.data.milestones || [];
-                    products = data.data.products || [];
-                    countdowns = data.data.countdowns || [];
-
-                    // 写入本地作为离线缓存
-                    localStorage.setItem('zero_schedule_v2', JSON.stringify(scheduleData));
-                    localStorage.setItem('zero_holidays', JSON.stringify(holidays));
-                    localStorage.setItem('zero_classes', JSON.stringify(classes));
-                    localStorage.setItem('zero_milestones', JSON.stringify(milestones));
-                    localStorage.setItem('zero_products', JSON.stringify(products));
-                    localStorage.setItem('zero_custom_countdowns', JSON.stringify(countdowns));
-
-                    if (badge) badge.innerText = '🟢 云端已连接';
+                if (isHoliday) {
+                  html += `<div class="period-slot disabled"><span>${p}: 休息</span></div>`;
                 } else {
-                    // 若云端尚无数据，将本地数据初始化推送到云端
-                    const localData = loadAllStorageData();
-                    scheduleData = localData.scheduleData;
-                    holidays = localData.holidays;
-                    classes = localData.classes;
-                    milestones = localData.milestones;
-                    products = localData.products;
-                    countdowns = localData.countdowns;
-                    await syncToCloud();
-                }
-            } catch (err) {
-                console.warn('拉取云端数据失败，回退到本地缓存:', err);
-                const localData = loadAllStorageData();
-                scheduleData = localData.scheduleData;
-                holidays = localData.holidays;
-                classes = localData.classes;
-                milestones = localData.milestones;
-                products = localData.products;
-                countdowns = localData.countdowns;
-            }
+                  let customStyle = '';
+                  let badgeHtml = '';
 
-            renderAllComponents();
-        }
-
-        function renderAllComponents() {
-            renderCountdowns();
-            renderClasses();
-            renderMilestones();
-            renderHolidays();
-            renderCalendars();
-            renderProducts();
-        }
-
-        function deepScanAndRescue() {
-            const reloaded = loadAllStorageData();
-            scheduleData = reloaded.scheduleData;
-            holidays = reloaded.holidays;
-            classes = reloaded.classes;
-            milestones = reloaded.milestones;
-            products = reloaded.products;
-            countdowns = reloaded.countdowns;
-
-            syncToCloud();
-
-            let dates = Object.keys(scheduleData).map(k => k.split('_')[1]).filter(Boolean);
-            if (dates.length > 0) {
-                dates.sort();
-                let [y, m] = dates[0].split('-');
-                document.getElementById('year-select').value = parseInt(y);
-                document.getElementById('month-select').value = parseInt(m);
-            }
-
-            renderAllComponents();
-            let classCount = Object.keys(scheduleData).length;
-            let holidayCount = Object.keys(holidays).length;
-            alert(`🎉 扫描完成！共定位到已排课节数：${classCount} 节，班级：${classes.length} 个，节假日：${holidayCount} 天。已自动为您展示并推送到云端！`);
-        }
-
-        function formatDateStr(d) {
-            let year = d.getFullYear();
-            let month = (d.getMonth() + 1).toString().padStart(2, '0');
-            let date = d.getDate().toString().padStart(2, '0');
-            return `${year}-${month}-${date}`;
-        }
-
-        function getContrastYIQ(hexcolor){
-            if(!hexcolor || hexcolor.charAt(0) !== '#') return 'black';
-            hexcolor = hexcolor.replace("#", "");
-            if(hexcolor.length === 3) {
-                hexcolor = hexcolor.split('').map(c => c + c).join('');
-            }
-            var r = parseInt(hexcolor.substr(0,2),16);
-            var g = parseInt(hexcolor.substr(2,2),16);
-            var b = parseInt(hexcolor.substr(4,2),16);
-            var yiq = ((r*299)+(g*587)+(b*114))/1000;
-            return (yiq >= 128) ? '#2c3e50' : '#ffffff';
-        }
-
-        function exportDataBackup() {
-            const fullBackup = {
-                scheduleData,
-                holidays,
-                milestones,
-                classes,
-                products,
-                countdowns,
-                exportTime: new Date().toLocaleString()
-            };
-            const blob = new Blob([JSON.stringify(fullBackup, null, 2)], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `ZERO工作台备份_${formatDateStr(new Date())}.json`;
-            a.click();
-            URL.revokeObjectURL(url);
-        }
-
-        function importDataBackup(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-
-            const reader = new FileReader();
-            reader.onload = async function(e) {
-                try {
-                    const data = JSON.parse(e.target.result);
-                    if (data.scheduleData) scheduleData = data.scheduleData;
-                    if (data.holidays) holidays = data.holidays;
-                    if (data.milestones) milestones = data.milestones;
-                    if (data.classes) classes = data.classes;
-                    if (data.products) products = data.products;
-                    if (data.countdowns) countdowns = data.countdowns;
-
-                    await syncToCloud();
-                    alert('🎉 备份数据已成功恢复并同步到云端！');
-                    renderAllComponents();
-                } catch(err) {
-                    alert('导入失败，文件格式不正确！');
-                }
-            };
-            reader.readAsText(file);
-            event.target.value = '';
-        }
-
-        function updateBJTime() {
-            const options = { timeZone: 'Asia/Shanghai', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false };
-            const formatter = new Intl.DateTimeFormat('zh-CN', options);
-            document.getElementById('bj-time').innerText = '北京时间：' + formatter.format(new Date());
-        }
-        setInterval(updateBJTime, 1000);
-        updateBJTime();
-
-        function addCountdown() {
-            const nameInput = document.getElementById('new-countdown-name');
-            const timeInput = document.getElementById('new-countdown-time');
-            const name = nameInput.value.trim();
-            const targetTime = timeInput.value;
-
-            if (!name) { alert('请输入倒计时事件名称！'); return; }
-            if (!targetTime) { alert('请选择目标倒计时时间！'); return; }
-
-            countdowns.push({
-                id: Date.now(),
-                name: name,
-                targetTime: targetTime
-            });
-
-            syncToCloud();
-            nameInput.value = '';
-            timeInput.value = '';
-            renderCountdowns();
-        }
-
-        function deleteCountdown(id) {
-            countdowns = countdowns.filter(c => c.id !== id);
-            syncToCloud();
-            renderCountdowns();
-        }
-
-        function renderCountdowns() {
-            const container = document.getElementById('countdown-list');
-            container.innerHTML = '';
-
-            if (countdowns.length === 0) {
-                container.innerHTML = `<div style="font-size:13px; color:#6b7280; grid-column: 1/-1;">暂无倒计时项目，请在上方输入事件名称与时间进行添加。</div>`;
-                return;
-            }
-
-            countdowns.forEach(c => {
-                let card = document.createElement('div');
-                card.className = 'countdown-item';
-                card.innerHTML = `
-                    <div class="countdown-header">
-                        <h3 title="${c.name}">${c.name}</h3>
-                        <button class="countdown-del-btn" title="删除此倒计时" onclick="deleteCountdown(${c.id})">✕</button>
-                    </div>
-                    <div class="countdown-target-time">目标时间: ${c.targetTime.replace('T', ' ')}</div>
-                    <div class="timer-display" id="timer-display-${c.id}">计算中...</div>
-                `;
-                container.appendChild(card);
-            });
-            updateAllTimers();
-        }
-
-        function updateAllTimers() {
-            const now = new Date().getTime();
-            countdowns.forEach(c => {
-                const el = document.getElementById(`timer-display-${c.id}`);
-                if (!el) return;
-
-                const target = new Date(c.targetTime).getTime();
-                const diff = target - now;
-
-                if (diff > 0) {
-                    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-                    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-                    const mins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-                    const secs = Math.floor((diff % (1000 * 60)) / 1000);
-                    el.innerText = `${days}天 ${hours}时 ${mins}分 ${secs}秒`;
-                } else {
-                    el.innerText = "已截止 / 已开始";
-                }
-            });
-        }
-        setInterval(updateAllTimers, 1000);
-
-        function addClass() {
-            const name = document.getElementById('class-name').value.trim();
-            const color = document.getElementById('class-color').value;
-
-            if (!name) { alert('请输入班级名称！'); return; }
-            if (classes.some(c => c.name === name)) { alert('该班级名称已存在！'); return; }
-
-            classes.push({ name, color });
-            syncToCloud();
-            document.getElementById('class-name').value = '';
-            renderClasses();
-        }
-
-        function deleteClass(index) {
-            let targetName = classes[index].name;
-            if(confirm(`确定删除班级“${targetName}”吗？\n（注：删除班级不会自动清空课表，如需清空排课请点击“清空排课”）`)){
-                classes.splice(index, 1);
-                syncToCloud();
-                renderClasses();
-                renderCalendars();
-            }
-        }
-
-        function clearAllScheduleForClass(className) {
-            if (!confirm(`⚠️ 确定要清空【${className}】在 A/B 教室的所有排课吗？`)) {
-                return;
-            }
-
-            previousScheduleBackup = JSON.parse(JSON.stringify(scheduleData));
-            document.getElementById('undo-btn').disabled = false;
-
-            let clearedCount = 0;
-            Object.keys(scheduleData).forEach(key => {
-                if (scheduleData[key] === className) {
-                    delete scheduleData[key];
-                    clearedCount++;
-                }
-            });
-
-            milestones = milestones.filter(m => m.className !== className);
-            syncToCloud();
-
-            alert(`已成功清空【${className}】的全部排课（共清除 ${clearedCount} 节课）。`);
-            renderMilestones();
-            renderCalendars();
-        }
-
-        function renderClasses() {
-            const container = document.getElementById('class-tags');
-            const batchSelect = document.getElementById('batch-class-select');
-            const milestoneSelect = document.getElementById('milestone-class-select');
-            const modalSelect = document.getElementById('modal-class-select');
-
-            container.innerHTML = '';
-            batchSelect.innerHTML = '<option value="">-- 选择班级 --</option>';
-            milestoneSelect.innerHTML = '<option value="">-- 选择班级 --</option>';
-            modalSelect.innerHTML = '<option value="">-- 选择班级 (或不占用) --</option>';
-
-            classes.forEach((c, index) => {
-                let tag = document.createElement('div');
-                tag.className = 'class-badge';
-                let textColor = getContrastYIQ(c.color);
-                tag.style.backgroundColor = c.color;
-                tag.style.color = textColor;
-                
-                tag.innerHTML = `
-                    <span>${c.name}</span>
-                    <span class="class-action-btn" title="一键清空该班级所有排课" onclick="clearAllScheduleForClass('${c.name}')">🗑️ 清空排课</span>
-                    <span class="class-action-btn" title="删除班级" onclick="deleteClass(${index})">✕</span>
-                `;
-                container.appendChild(tag);
-
-                batchSelect.appendChild(new Option(c.name, c.name));
-                milestoneSelect.appendChild(new Option(c.name, c.name));
-                modalSelect.appendChild(new Option(c.name, c.name));
-            });
-        }
-
-        function getRoomsForClass(className) {
-            let rooms = new Set();
-            Object.keys(scheduleData).forEach(slotKey => {
-                if (scheduleData[slotKey] === className) {
-                    if (slotKey.startsWith('A_')) rooms.add('A');
-                    if (slotKey.startsWith('B_')) rooms.add('B');
-                }
-            });
-            return Array.from(rooms);
-        }
-
-        function addMilestone() {
-            const className = document.getElementById('milestone-class-select').value;
-            const type = document.getElementById('milestone-type-select').value;
-            const dateKey = document.getElementById('milestone-date').value;
-
-            if(!className) { alert('请选择班级！'); return; }
-            if(!dateKey) { alert('请选择节点日期！'); return; }
-
-            saveMilestoneDirectly(className, type, dateKey);
-        }
-
-        function saveMilestoneDirectly(className, type, dateKey) {
-            let newItem = {
-                id: Date.now(),
-                className,
-                type,
-                dateKey
-            };
-
-            milestones.push(newItem);
-            milestones.sort((a, b) => a.dateKey.localeCompare(b.dateKey));
-
-            syncToCloud();
-            renderMilestones();
-            renderCalendars();
-        }
-
-        function deleteMilestone(id) {
-            milestones = milestones.filter(m => m.id !== id);
-            syncToCloud();
-            renderMilestones();
-            renderCalendars();
-        }
-
-        function renderMilestones() {
-            const container = document.getElementById('milestone-summary-list');
-            container.innerHTML = '';
-
-            if (milestones.length === 0) {
-                container.innerHTML = `<div style="font-size:13px; color:#6b7280;">暂无标记节点，您可在点击日历排课块时一键标记，或在上方选班标注“开班”、“半期”、“结课”。</div>`;
-                return;
-            }
-
-            milestones.forEach(m => {
-                let targetRooms = getRoomsForClass(m.className);
-                let roomDesc = targetRooms.length > 0 ? ` (教室 ${targetRooms.join('/')})` : '';
-
-                let card = document.createElement('div');
-                card.className = `milestone-card type-${m.type}`;
-                card.innerHTML = `
-                    <div>
-                        <strong>${m.dateKey}</strong>
-                        <span style="margin: 0 4px; color:#4b5563;">${m.className}${roomDesc}</span>
-                    </div>
-                    <div style="display:flex; align-items:center;">
-                        <span class="milestone-tag-badge badge-${m.type}">${m.type}</span>
-                        <span class="milestone-del-btn" title="删除节点" onclick="deleteMilestone(${m.id})">✕</span>
-                    </div>
-                `;
-                container.appendChild(card);
-            });
-        }
-
-        function addHoliday() {
-            const startStr = document.getElementById('holiday-start').value;
-            const endStr = document.getElementById('holiday-end').value || startStr;
-            const name = document.getElementById('holiday-name').value.trim() || '休假';
-
-            if (!startStr) { alert('请选择开始日期！'); return; }
-            let curr = new Date(startStr);
-            let end = new Date(endStr);
-            if (curr > end) { alert('开始日期不能晚于结束日期！'); return; }
-
-            while (curr <= end) {
-                let dateKey = formatDateStr(curr);
-                holidays[dateKey] = name;
-                curr.setDate(curr.getDate() + 1);
-            }
-
-            syncToCloud();
-            renderHolidays();
-            renderCalendars();
-        }
-
-        function deleteHoliday(dateKey) {
-            delete holidays[dateKey];
-            syncToCloud();
-            renderHolidays();
-            renderCalendars();
-        }
-
-        function renderHolidays() {
-            const container = document.getElementById('holiday-tags');
-            container.innerHTML = '';
-            Object.keys(holidays).sort().forEach(dateKey => {
-                let tag = document.createElement('div');
-                tag.className = 'tag-item';
-                tag.innerHTML = `${dateKey} (${holidays[dateKey]}) <span onclick="deleteHoliday('${dateKey}')">✕</span>`;
-                container.appendChild(tag);
-            });
-        }
-
-        function batchBookWeekly(isOverwrite = false) {
-            const className = document.getElementById('batch-class-select').value;
-            const startStr = document.getElementById('batch-start').value;
-            const period = document.getElementById('batch-period').value;
-            const room = document.getElementById('batch-room').value;
-            const count = parseInt(document.getElementById('batch-count').value);
-
-            const checkedWeeks = Array.from(document.querySelectorAll('input[name="batch-week"]:checked')).map(cb => parseInt(cb.value));
-
-            if (!className) { alert('请先选择要排课的班级！'); return; }
-            if (!startStr) { alert('请选择开始日期！'); return; }
-            if (checkedWeeks.length === 0) { alert('请至少勾选一个每周上课的星期！'); return; }
-            if (!count || count <= 0) { alert('请填写有效的总课次数！'); return; }
-
-            if (isOverwrite) {
-                if (!confirm(`⚠️ 确定要重新规划【${className}】的排课吗？`)) return;
-            }
-
-            let curr = new Date(startStr);
-            let simulatedSlots = [];
-            let conflictDetails = [];
-            let skippedDates = [];
-
-            let tempSchedule = JSON.parse(JSON.stringify(scheduleData));
-            if (isOverwrite) {
-                Object.keys(tempSchedule).forEach(key => {
-                    if (tempSchedule[key] === className) delete tempSchedule[key];
-                });
-            }
-
-            while (simulatedSlots.length < count) {
-                let dayOfWeek = curr.getDay(); 
-                if (checkedWeeks.includes(dayOfWeek)) {
-                    let dateKey = formatDateStr(curr);
-                    if (holidays[dateKey]) {
-                        skippedDates.push(`${dateKey}(${holidays[dateKey]})`);
-                    } else {
-                        let slotKey = `${room}_${dateKey}_${period}`;
-                        if (tempSchedule[slotKey] && tempSchedule[slotKey] !== className) {
-                            conflictDetails.push(`• ${dateKey} ${period}：已被【${tempSchedule[slotKey]}】占用`);
-                        }
-                        simulatedSlots.push(slotKey);
+                  if(isOccupied) {
+                    let targetClass = classes.find(c => c.name === className);
+                    if(targetClass) {
+                      let bg = targetClass.color;
+                      let textClr = getContrastYIQ(bg);
+                      customStyle = `style="background-color: ${bg}; color: ${textClr};"`;
                     }
-                }
-                curr.setDate(curr.getDate() + 1);
-            }
 
-            if (conflictDetails.length > 0) {
-                let warningMsg = `⚠️ 排课冲突警告！在 教室 ${room} 发现以下 ${conflictDetails.length} 处时间冲突：\n\n` +
-                                 conflictDetails.slice(0, 10).join('\n') + 
-                                 (conflictDetails.length > 10 ? `\n...等共 ${conflictDetails.length} 处冲突` : '') +
-                                 `\n\n请选择：\n【确定】强行覆盖已有课程\n【取消】放弃排课并手动调整`;
-                
-                if (!confirm(warningMsg)) return;
-            }
-
-            previousScheduleBackup = JSON.parse(JSON.stringify(scheduleData));
-            document.getElementById('undo-btn').disabled = false;
-
-            if (isOverwrite) {
-                Object.keys(scheduleData).forEach(key => {
-                    if (scheduleData[key] === className) {
-                        delete scheduleData[key];
+                    let targetMilestone = dayMilestones.find(m => m.className === className);
+                    if (targetMilestone && badgeIconMap[targetMilestone.type]) {
+                      let bInfo = badgeIconMap[targetMilestone.type];
+                      badgeHtml = `<span class="inline-badge-icon" style="background:${bInfo.bg};" title="${targetMilestone.className} ${targetMilestone.type}">${bInfo.icon}</span>`;
                     }
-                });
-            }
+                  }
 
-            simulatedSlots.forEach(slotKey => {
-                scheduleData[slotKey] = className;
-            });
+                  let titleText = isOccupied ? `${p}: ${className}` : `${p}: 空闲`;
 
-            syncToCloud();
-            let actionText = isOverwrite ? "重新规划完成" : "排课成功";
-            let msg = `${actionText}！已为【${className}】在 教室 ${room} 顺利排入 ${count} 次课。`;
-            if (conflictDetails.length > 0) msg += `\n（已按指令覆盖冲突排课）`;
-            if (skippedDates.length > 0) msg += `\n期间自动跳过 ${skippedDates.length} 天节假日。`;
-            alert(msg);
-            renderMilestones();
-            renderCalendars();
-        }
-
-        function undoLastBatch() {
-            if (!previousScheduleBackup) return;
-
-            if (confirm('确认要撤销上一次的操作吗？课表将恢复到操作前。')) {
-                scheduleData = JSON.parse(JSON.stringify(previousScheduleBackup));
-                syncToCloud();
-                previousScheduleBackup = null;
-                document.getElementById('undo-btn').disabled = true;
-                alert('已成功撤销上一次操作！');
-                renderMilestones();
-                renderCalendars();
-            }
-        }
-
-        function initMonthPicker() {
-            const yearSelect = document.getElementById('year-select');
-            const monthSelect = document.getElementById('month-select');
-            const now = new Date();
-
-            let targetYear = now.getFullYear();
-            let targetMonth = now.getMonth() + 1;
-
-            let dates = Object.keys(scheduleData).map(k => k.split('_')[1]).filter(Boolean);
-            if (dates.length > 0) {
-                dates.sort();
-                let [y, m] = dates[0].split('-');
-                targetYear = parseInt(y);
-                targetMonth = parseInt(m);
-            }
-
-            yearSelect.innerHTML = '';
-            monthSelect.innerHTML = '';
-
-            for(let y = now.getFullYear() - 1; y <= now.getFullYear() + 2; y++) {
-                let opt = document.createElement('option');
-                opt.value = y; opt.innerText = y + '年';
-                if(y === targetYear) opt.selected = true;
-                yearSelect.appendChild(opt);
-            }
-
-            for(let m = 1; m <= 12; m++) {
-                let opt = document.createElement('option');
-                opt.value = m; opt.innerText = m + '月';
-                if(m === targetMonth) opt.selected = true;
-                monthSelect.appendChild(opt);
-            }
-        }
-
-        function goCurrentMonth() {
-            const now = new Date();
-            document.getElementById('year-select').value = now.getFullYear();
-            document.getElementById('month-select').value = now.getMonth() + 1;
-            renderCalendars();
-        }
-
-        function renderCalendars() {
-            const year = parseInt(document.getElementById('year-select').value);
-            const month = parseInt(document.getElementById('month-select').value);
-            
-            let firstDayIndex = new Date(year, month - 1, 1).getDay();
-            let startOffset = firstDayIndex === 0 ? 6 : firstDayIndex - 1;
-            let daysInMonth = new Date(year, month, 0).getDate();
-
-            let monthPrefix = `${year}-${month.toString().padStart(2, '0')}`;
-            let currentMonthLessons = Object.keys(scheduleData).filter(k => k.includes(monthPrefix)).length;
-            document.getElementById('data-stats-hint').innerText = `📊 本月已排课：${currentMonthLessons} 节 | 系统总排课：${Object.keys(scheduleData).length} 节`;
-
-            let gridDays = [];
-            for (let i = 0; i < startOffset; i++) {
-                gridDays.push({ type: 'empty' });
-            }
-            for (let d = 1; d <= daysInMonth; d++) {
-                let dateKey = `${year}-${month.toString().padStart(2, '0')}-${d.toString().padStart(2, '0')}`;
-                gridDays.push({ type: 'day', dayNum: d, dateKey: dateKey, holidayName: holidays[dateKey] || null });
-            }
-            while (gridDays.length % 7 !== 0) {
-                gridDays.push({ type: 'empty' });
-            }
-
-            const periods = ['上午', '下午', '晚上'];
-
-            const badgeIconMap = {
-                '开班': { icon: '🟢开', bg: '#16a34a' },
-                '半期': { icon: '🟡半', bg: '#eab308' },
-                '结课': { icon: '🔴结', bg: '#dc2626' }
-            };
-
-            ['A', 'B'].forEach(room => {
-                const table = document.getElementById(`table-room${room}`);
-                let html = `
-                    <thead>
-                        <tr>
-                            <th>一</th><th>二</th><th>三</th><th>四</th><th>五</th>
-                            <th class="weekend">六</th><th class="weekend">日</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                `;
-
-                for (let i = 0; i < gridDays.length; i += 7) {
-                    html += '<tr>';
-                    for (let j = 0; j < 7; j++) {
-                        let item = gridDays[i + j];
-                        if (item.type === 'empty') {
-                            html += '<td class="day-cell other-month"></td>';
-                        } else {
-                            let isHoliday = !!item.holidayName;
-
-                            let dayMilestones = milestones.filter(m => {
-                                if (m.dateKey !== item.dateKey) return false;
-                                let roomsForClass = getRoomsForClass(m.className);
-                                return roomsForClass.includes(room) || roomsForClass.length === 0;
-                            });
-
-                            html += `<td class="day-cell ${isHoliday ? 'is-holiday' : ''}">`;
-                            html += `<div class="day-number">
-                                        <span>${item.dayNum}</span>
-                                        ${isHoliday ? `<span class="holiday-label">${item.holidayName}</span>` : ''}
-                                     </div>`;
-
-                            periods.forEach(p => {
-                                let slotKey = `${room}_${item.dateKey}_${p}`;
-                                let className = scheduleData[slotKey] || '';
-                                let isOccupied = className !== '';
-
-                                if (isHoliday) {
-                                    html += `<div class="period-slot disabled"><span>${p}: 休息</span></div>`;
-                                } else {
-                                    let customStyle = '';
-                                    let badgeHtml = '';
-
-                                    if(isOccupied) {
-                                        let targetClass = classes.find(c => c.name === className);
-                                        if(targetClass) {
-                                            let bg = targetClass.color;
-                                            let textClr = getContrastYIQ(bg);
-                                            customStyle = `style="background-color: ${bg}; color: ${textClr};"`;
-                                        }
-
-                                        let targetMilestone = dayMilestones.find(m => m.className === className);
-                                        if (targetMilestone && badgeIconMap[targetMilestone.type]) {
-                                            let bInfo = badgeIconMap[targetMilestone.type];
-                                            badgeHtml = `<span class="inline-badge-icon" style="background:${bInfo.bg};" title="${targetMilestone.className} ${targetMilestone.type}">${bInfo.icon}</span>`;
-                                        }
-                                    }
-
-                                    let titleText = isOccupied ? `${p}: ${className}` : `${p}: 空闲`;
-
-                                    html += `<div class="period-slot ${isOccupied ? 'occupied' : ''}" ${customStyle}
-                                                  onclick="openModal('${slotKey}', '${className}', '${item.dateKey}', '教室 ${room} | ${item.dateKey} ${p}')">
-                                                  <span style="overflow:hidden; text-overflow:ellipsis;">${titleText}</span>
-                                                  ${badgeHtml}
-                                               </div>`;
-                                }
-                            });
-
-                            html += `</td>`;
-                        }
-                    }
-                    html += '</tr>';
+                  html += `<div class="period-slot ${isOccupied ? 'occupied' : ''}" ${customStyle}
+                               onclick="openModalWs('${slotKey}', '${className}', '${item.dateKey}', '教室 ${room} | ${item.dateKey} ${p}')">
+                            <span style="overflow:hidden; text-overflow:ellipsis;">${titleText}</span>
+                            ${badgeHtml}
+                           </div>`;
                 }
+              });
 
-                html += '</tbody>';
-                table.innerHTML = html;
-            });
-        }
-
-        function openModal(key, className, dateKey, title) {
-            activeCellKey = key;
-            activeDateKey = dateKey;
-            
-            document.getElementById('modal-time-title').innerText = title;
-            document.getElementById('modal-class-select').value = className;
-            document.getElementById('modal-date-display').innerText = dateKey;
-
-            const quickArea = document.getElementById('quick-milestone-area');
-            if (className) {
-                quickArea.style.display = 'block';
-            } else {
-                quickArea.style.display = 'none';
+              html += `</td>`;
             }
-
-            document.getElementById('course-modal').style.display = 'flex';
+          }
+          html += '</tr>';
         }
 
-        function closeModal() {
-            document.getElementById('course-modal').style.display = 'none';
+        html += '</tbody>';
+        table.innerHTML = html;
+      });
+    }
+
+    function openModalWs(key, className, dateKey, title) {
+      activeCellKey = key;
+      activeDateKey = dateKey;
+      
+      document.getElementById('modal-time-title').innerText = title;
+      document.getElementById('modal-class-select').value = className;
+      document.getElementById('modal-date-display').innerText = dateKey;
+
+      const quickArea = document.getElementById('quick-milestone-area');
+      if (className) {
+        quickArea.style.display = 'block';
+      } else {
+        quickArea.style.display = 'none';
+      }
+
+      document.getElementById('course-modal').style.display = 'flex';
+    }
+
+    function closeModalWs() {
+      document.getElementById('course-modal').style.display = 'none';
+    }
+
+    function quickMarkMilestone(type) {
+      const className = document.getElementById('modal-class-select').value;
+      if (!className) {
+        alert('请先为此时段选择一个班级！');
+        return;
+      }
+
+      saveMilestoneDirectly(className, type, activeDateKey);
+      alert(`已将 ${activeDateKey} 设为【${className}】的【${type}】节点！`);
+      closeModalWs();
+    }
+
+    function saveSingleSlot() {
+      const className = document.getElementById('modal-class-select').value;
+      let oldClass = scheduleData[activeCellKey];
+
+      if (oldClass && className && oldClass !== className) {
+        if (!confirm(`⚠️ 该时段当前已被【${oldClass}】占用，确定要更改为【${className}】吗？`)) {
+          return;
         }
+      }
 
-        function quickMarkMilestone(type) {
-            const className = document.getElementById('modal-class-select').value;
-            if (!className) {
-                alert('请先为此时段选择一个班级！');
-                return;
-            }
+      if(className) scheduleData[activeCellKey] = className;
+      else delete scheduleData[activeCellKey];
 
-            saveMilestoneDirectly(className, type, activeDateKey);
-            alert(`已将 ${activeDateKey} 设为【${className}】的【${type}】节点！`);
-            closeModal();
+      syncToCloud();
+      closeModalWs();
+      renderMilestones();
+      renderCalendars();
+    }
+
+    function clearSingleSlot() {
+      delete scheduleData[activeCellKey];
+      syncToCloud();
+      closeModalWs();
+      renderMilestones();
+      renderCalendars();
+    }
+
+    function renderProducts() {
+      const container = document.getElementById('product-list');
+      container.innerHTML = '';
+      products.forEach((prod, index) => {
+        let card = document.createElement('div');
+        card.className = 'product-card';
+        card.innerHTML = `
+          <div>
+            <div class="product-name">${prod.name}</div>
+            <div class="product-price">¥ ${prod.price}</div>
+          </div>
+          <button class="delete-btn" onclick="deleteProduct(${index})">删除</button>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    function addProduct() {
+      const nameInput = document.getElementById('prod-name');
+      const priceInput = document.getElementById('prod-price');
+      const name = nameInput.value.trim();
+      const price = priceInput.value.trim();
+
+      if (name && price) {
+        products.push({ name, price });
+        syncToCloud();
+        nameInput.value = ''; priceInput.value = '';
+        renderProducts();
+      } else {
+        alert('请填写完整的商品名称和价格！');
+      }
+    }
+
+    function deleteProduct(index) {
+      products.splice(index, 1);
+      syncToCloud();
+      renderProducts();
+    }
+
+    // =============================================================
+    // 模块 2: 教师月度排课看板逻辑
+    // =============================================================
+    const WEEK_DAYS_TEACHER = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
+    const START_HOUR_TEACHER = 9;
+    const END_HOUR_TEACHER = 18;
+    const TOTAL_HOURS_TEACHER = END_HOUR_TEACHER - START_HOUR_TEACHER;
+    const TIMELINE_HEIGHT_TEACHER = 360;
+
+    const PRESET_PALETTE_TEACHER = [
+      "#fef08a", "#f3e8ff", "#fce7f3", "#dcfce7", "#e0e7ff",
+      "#ffedd5", "#cffafe", "#fee2e2", "#f1f5f9", "#fae8ff"
+    ];
+
+    let teacherAppData = JSON.parse(localStorage.getItem('ZERO_TIMELINE_SCHEDULE_DATA_V10')) || {
+      currentTeacherId: "1",
+      currentMonth: "2026-08",
+      publicHolidays: ["2026-08-01"],
+      teachers: [
+        {
+          id: "1",
+          name: "纯礼老师",
+          restDays: [4, 5],
+          customRestDates: ["2026-08-18"],
+          workOverrideDates: [],
+          students: [
+            { id: "s1", name: "若希", color: "#fef08a", paused: false },
+            { id: "s2", name: "雨濛", color: "#dcfce7", paused: false },
+            { id: "s3", name: "张磊", color: "#f3e8ff", paused: false },
+            { id: "s4", name: "李同学", color: "#f1f5f9", paused: true }
+          ],
+          courses: [
+            { id: "c1", date: "2026-08-04", start: "09:30", end: "10:45", title: "张磊" }
+          ]
         }
+      ]
+    };
 
-        function saveSingleSlot() {
-            const className = document.getElementById('modal-class-select').value;
-            let oldClass = scheduleData[activeCellKey];
+    let selectedHighlightStudentTeacher = null;
+    let undoStackTeacher = [];
+    let redoStackTeacher = [];
 
-            if (oldClass && className && oldClass !== className) {
-                if (!confirm(`⚠️ 该时段当前已被【${oldClass}】占用，确定要更改为【${className}】吗？`)) {
-                    return;
-                }
-            }
+    function pushHistoryTeacher() {
+      undoStackTeacher.push(JSON.stringify(teacherAppData));
+      if (undoStackTeacher.length > 30) undoStackTeacher.shift();
+      redoStackTeacher = [];
+      updateUndoRedoButtonStateTeacher();
+    }
 
-            if(className) scheduleData[activeCellKey] = className;
-            else delete scheduleData[activeCellKey];
+    function undoActionTeacher() {
+      if (undoStackTeacher.length === 0) return;
+      redoStackTeacher.push(JSON.stringify(teacherAppData));
+      const prev = undoStackTeacher.pop();
+      teacherAppData = JSON.parse(prev);
+      localStorage.setItem('ZERO_TIMELINE_SCHEDULE_DATA_V10', JSON.stringify(teacherAppData));
+      updateUndoRedoButtonStateTeacher();
+      renderTeacherApp();
+    }
 
-            syncToCloud();
-            closeModal();
-            renderMilestones();
-            renderCalendars();
-        }
+    function redoActionTeacher() {
+      if (redoStackTeacher.length === 0) return;
+      undoStackTeacher.push(JSON.stringify(teacherAppData));
+      const next = redoStackTeacher.pop();
+      teacherAppData = JSON.parse(next);
+      localStorage.setItem('ZERO_TIMELINE_SCHEDULE_DATA_V10', JSON.stringify(teacherAppData));
+      updateUndoRedoButtonStateTeacher();
+      renderTeacherApp();
+    }
 
-        function clearSingleSlot() {
-            delete scheduleData[activeCellKey];
-            syncToCloud();
-            closeModal();
-            renderMilestones();
-            renderCalendars();
-        }
+    function updateUndoRedoButtonStateTeacher() {
+      const uBtn = document.getElementById('btnUndo');
+      const rBtn = document.getElementById('btnRedo');
+      if (uBtn) uBtn.disabled = undoStackTeacher.length === 0;
+      if (rBtn) rBtn.disabled = redoStackTeacher.length === 0;
+    }
 
-        function renderProducts() {
-            const container = document.getElementById('product-list');
-            container.innerHTML = '';
-            products.forEach((prod, index) => {
-                let card = document.createElement('div');
-                card.className = 'product-card';
-                card.innerHTML = `
-                    <div>
-                        <div class="product-name">${prod.name}</div>
-                        <div class="product-price">¥ ${prod.price}</div>
-                    </div>
-                    <button class="delete-btn" onclick="deleteProduct(${index})">删除</button>
-                `;
-                container.appendChild(card);
-            });
-        }
+    function getTeacherObj() {
+      return teacherAppData.teachers.find(t => t.id === teacherAppData.currentTeacherId) || teacherAppData.teachers[0];
+    }
 
-        function addProduct() {
-            const nameInput = document.getElementById('prod-name');
-            const priceInput = document.getElementById('prod-price');
-            const name = nameInput.value.trim();
-            const price = priceInput.value.trim();
+    function saveDataTeacher() {
+      localStorage.setItem('ZERO_TIMELINE_SCHEDULE_DATA_V10', JSON.stringify(teacherAppData));
+      renderStatsTeacher();
+    }
 
-            if (name && price) {
-                products.push({ name, price });
-                syncToCloud();
-                nameInput.value = ''; priceInput.value = '';
-                renderProducts();
-            } else {
-                alert('请填写完整的商品名称和价格！');
-            }
-        }
+    function changeMonthTeacher(val) {
+      if (!val) return;
+      teacherAppData.currentMonth = val;
+      selectedHighlightStudentTeacher = null;
+      renderTeacherApp();
+    }
 
-        function deleteProduct(index) {
-            products.splice(index, 1);
-            syncToCloud();
-            renderProducts();
-        }
+    function prevMonthTeacher() {
+      const [y, m] = teacherAppData.currentMonth.split('-').map(Number);
+      const prev = new Date(y, m - 2, 1);
+      teacherAppData.currentMonth = `${prev.getFullYear()}-${String(prev.getMonth() + 1).padStart(2, '0')}`;
+      selectedHighlightStudentTeacher = null;
+      renderTeacherApp();
+    }
 
-        window.onload = function() {
-            initMonthPicker();
-            fetchFromCloud();
+    function nextMonthTeacher() {
+      const [y, m] = teacherAppData.currentMonth.split('-').map(Number);
+      const next = new Date(y, m, 1);
+      teacherAppData.currentMonth = `${next.getFullYear()}-${String(next.getMonth() + 1).padStart(2, '0')}`;
+      selectedHighlightStudentTeacher = null;
+      renderTeacherApp();
+    }
+
+    function getStudentColorTeacher(teacher, studentName) {
+      const st = (teacher.students || []).find(s => s.name === studentName);
+      if (st && st.color) return st.color;
+      let hash = 0;
+      for (let i = 0; i < studentName.length; i++) hash = studentName.charCodeAt(i) + ((hash << 5) - hash);
+      const idx = Math.abs(hash) % PRESET_PALETTE_TEACHER.length;
+      return PRESET_PALETTE_TEACHER[idx];
+    }
+
+    function renderTabsTeacher() {
+      const tabs = document.getElementById('teacherTabs');
+      if (!tabs) return;
+      tabs.innerHTML = '';
+      teacherAppData.teachers.forEach(t => {
+        const btn = document.createElement('div');
+        btn.className = `teacher-tab ${t.id === teacherAppData.currentTeacherId ? 'active' : ''}`;
+        
+        const nameSpan = document.createElement('span');
+        nameSpan.innerText = t.name;
+        btn.appendChild(nameSpan);
+
+        const delBtn = document.createElement('span');
+        delBtn.className = 'del-teacher-btn';
+        delBtn.innerHTML = '×';
+        delBtn.title = `删除老师：${t.name}`;
+        delBtn.onclick = (e) => {
+          e.stopPropagation();
+          deleteTeacherByIdTeacher(t.id);
         };
-    </script>
+        btn.appendChild(delBtn);
+
+        btn.onclick = () => {
+          teacherAppData.currentTeacherId = t.id;
+          selectedHighlightStudentTeacher = null;
+          renderTeacherApp();
+        };
+        tabs.appendChild(btn);
+      });
+    }
+
+    function deleteTeacherByIdTeacher(teacherId) {
+      if (teacherAppData.teachers.length <= 1) {
+        alert('系统至少需要保留一位老师！');
+        return;
+      }
+      const target = teacherAppData.teachers.find(t => t.id === teacherId);
+      if (!target) return;
+
+      if (confirm(`确定要删除【${target.name}】及其全部排课数据吗？（操作后可撤销）`)) {
+        pushHistoryTeacher();
+        teacherAppData.teachers = teacherAppData.teachers.filter(t => t.id !== teacherId);
+        if (teacherAppData.currentTeacherId === teacherId) {
+          teacherAppData.currentTeacherId = teacherAppData.teachers[0].id;
+        }
+        selectedHighlightStudentTeacher = null;
+        saveDataTeacher();
+        renderTeacherApp();
+      }
+    }
+
+    function deleteCurrentTeacherBtnTeacher() {
+      const teacher = getTeacherObj();
+      if (teacher) deleteTeacherByIdTeacher(teacher.id);
+    }
+
+    function renderStudentCategoriesTeacher() {
+      const panel = document.getElementById('studentCategoriesPanel');
+      if (!panel) return;
+      const teacher = getTeacherObj();
+      const allStudents = teacher.students || [];
+
+      const bookedSet = new Set();
+      (teacher.courses || []).forEach(c => {
+        if (c.date && c.date.startsWith(teacherAppData.currentMonth) && c.title) {
+          bookedSet.add(c.title);
+        }
+      });
+
+      const scheduledList = [];
+      const unscheduledList = [];
+      const pausedList = [];
+
+      allStudents.forEach(st => {
+        if (st.paused) {
+          pausedList.push(st);
+        } else if (bookedSet.has(st.name)) {
+          scheduledList.push(st);
+        } else {
+          unscheduledList.push(st);
+        }
+      });
+
+      const renderTagGroup = (list, emptyHint) => {
+        if (list.length === 0) return `<span style="font-size:12px; color:#94a3b8;">${emptyHint}</span>`;
+        return list.map(st => {
+          const isSelected = selectedHighlightStudentTeacher === st.name;
+          return `
+            <div class="student-tag ${isSelected ? 'active-filter' : ''}" 
+                 style="background-color: ${st.color};" 
+                 onclick="toggleStudentHighlightTeacher('${st.name}')"
+                 title="点击高亮该学员在课表中的所有排课">
+              <span class="student-color-dot" style="background:#0f172a;"></span>
+              <span>${st.name}</span>
+            </div>
+          `;
+        }).join('');
+      };
+
+      panel.innerHTML = `
+        <div class="student-cat-row">
+          <div class="student-cat-badge badge-scheduled">✅ 本月已排 (${scheduledList.length})</div>
+          <div class="student-tag-list">${renderTagGroup(scheduledList, '本月暂无已排课学员')}</div>
+        </div>
+        <div class="student-cat-row">
+          <div class="student-cat-badge badge-unscheduled">⏳ 本月未排 (${unscheduledList.length})</div>
+          <div class="student-tag-list">${renderTagGroup(unscheduledList, '本月暂无未排课学员')}</div>
+        </div>
+        <div class="student-cat-row">
+          <div class="student-cat-badge badge-paused">⏸️ 本月暂定 (${pausedList.length})</div>
+          <div class="student-tag-list">${renderTagGroup(pausedList, '暂无暂定不排学员')}</div>
+        </div>
+        <div class="filter-alert-bar" id="filterAlertBar" style="display: ${selectedHighlightStudentTeacher ? 'flex' : 'none'};">
+          <span>🔍 正在课表中重点色高亮学员：<strong>【${selectedHighlightStudentTeacher || ''}】</strong></span>
+          <button onclick="clearStudentHighlightTeacher()" style="padding:2px 8px; font-size:11px; border-color:#a5b4fc;">✖ 取消高亮</button>
+        </div>
+      `;
+    }
+
+    function toggleStudentHighlightTeacher(name) {
+      if (selectedHighlightStudentTeacher === name) {
+        selectedHighlightStudentTeacher = null;
+      } else {
+        selectedHighlightStudentTeacher = name;
+      }
+      renderStudentCategoriesTeacher();
+      renderCalendarTeacher();
+    }
+
+    function clearStudentHighlightTeacher() {
+      selectedHighlightStudentTeacher = null;
+      renderStudentCategoriesTeacher();
+      renderCalendarTeacher();
+    }
+
+    function getMonthWeeksTeacher(year, month) {
+      const weeks = [];
+      const firstDay = new Date(year, month - 1, 1);
+      const lastDay = new Date(year, month, 0);
+
+      let currentDay = new Date(firstDay);
+      let dayOfWeek = currentDay.getDay();
+      let diff = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+      currentDay.setDate(currentDay.getDate() + diff);
+
+      while (true) {
+        const week = [];
+        for (let i = 0; i < 7; i++) {
+          week.push(new Date(currentDay));
+          currentDay.setDate(currentDay.getDate() + 1);
+        }
+        weeks.push(week);
+        if (currentDay > lastDay && week[6] >= lastDay) break;
+      }
+      return weeks;
+    }
+
+    function timeToMinutesTeacher(timeStr) {
+      const [h, m] = timeStr.split(':').map(Number);
+      return h * 60 + m;
+    }
+
+    function isTeacherRestDay(teacher, dateStr, dayOfWeek) {
+      if (!teacher.workOverrideDates) teacher.workOverrideDates = [];
+      if (!teacher.customRestDates) teacher.customRestDates = [];
+      if (!teacher.restDays) teacher.restDays = [];
+
+      if (teacher.workOverrideDates.includes(dateStr)) return false;
+      if (teacher.customRestDates.includes(dateStr)) return true;
+      return teacher.restDays.includes(dayOfWeek);
+    }
+
+    function renderCalendarTeacher() {
+      const container = document.getElementById('calendarContainerTeacher');
+      if (!container) return;
+      container.innerHTML = '';
+
+      const [yearStr, monthStr] = teacherAppData.currentMonth.split('-');
+      const year = parseInt(yearStr);
+      const month = parseInt(monthStr);
+      const weeks = getMonthWeeksTeacher(year, month);
+      const teacher = getTeacherObj();
+
+      const table = document.createElement('table');
+      table.className = 'month-table';
+
+      const thead = document.createElement('thead');
+      const trWeek = document.createElement('tr');
+      trWeek.className = 'weekday-row';
+      WEEK_DAYS_TEACHER.forEach(w => {
+        const th = document.createElement('th');
+        th.innerText = w;
+        trWeek.appendChild(th);
+      });
+      thead.appendChild(trWeek);
+      table.appendChild(thead);
+
+      const tbody = document.createElement('tbody');
+
+      weeks.forEach(week => {
+        const trDate = document.createElement('tr');
+        trDate.className = 'date-row';
+        week.forEach(date => {
+          const th = document.createElement('th');
+          const isCurrentMonth = (date.getMonth() + 1) === month;
+          const dateStr = formatDateStr(date);
+          const dayOfWeek = date.getDay();
+          const isPubRest = teacherAppData.publicHolidays && teacherAppData.publicHolidays.includes(dateStr);
+          const isTeacherRest = isTeacherRestDay(teacher, dateStr, dayOfWeek);
+
+          const inner = document.createElement('div');
+          inner.className = 'date-header-inner';
+          inner.innerHTML = `<span>${date.getMonth() + 1}月${date.getDate()}日</span>`;
+
+          if (isCurrentMonth && !isPubRest) {
+            const toggleBtn = document.createElement('button');
+            toggleBtn.className = `date-header-btn ${isTeacherRest ? 'is-rest' : ''}`;
+            toggleBtn.innerText = isTeacherRest ? '设为上班' : '设为休息';
+            toggleBtn.onclick = (e) => {
+              e.stopPropagation();
+              toggleSingleDayRestTeacher(dateStr, dayOfWeek);
+            };
+            inner.appendChild(toggleBtn);
+          }
+
+          th.appendChild(inner);
+          if (!isCurrentMonth) {
+            th.style.color = '#94a3b8';
+            th.style.backgroundColor = '#f1f5f9';
+          }
+          trDate.appendChild(th);
+        });
+        tbody.appendChild(trDate);
+
+        const trContent = document.createElement('tr');
+        week.forEach(date => {
+          const tdDay = document.createElement('td');
+          const isCurrentMonth = (date.getMonth() + 1) === month;
+          const dateStr = formatDateStr(date);
+          const dayOfWeek = date.getDay();
+
+          if (!isCurrentMonth) {
+            tdDay.className = 'empty-month-cell';
+            trContent.appendChild(tdDay);
+            return;
+          }
+
+          if (teacherAppData.publicHolidays && teacherAppData.publicHolidays.includes(dateStr)) {
+            const mask = document.createElement('div');
+            mask.className = 'public-rest-column-mask';
+            mask.innerHTML = '公&nbsp;休&nbsp;🎌';
+            tdDay.appendChild(mask);
+            trContent.appendChild(tdDay);
+            return;
+          }
+
+          if (isTeacherRestDay(teacher, dateStr, dayOfWeek)) {
+            const mask = document.createElement('div');
+            mask.className = 'rest-column-mask';
+            mask.innerHTML = '休&nbsp;息&nbsp;♨';
+            tdDay.appendChild(mask);
+            trContent.appendChild(tdDay);
+            return;
+          }
+
+          const timelineBox = document.createElement('div');
+          timelineBox.className = 'day-timeline-box';
+          timelineBox.title = '点击此日期快速排课';
+          timelineBox.onclick = () => openAddCourseModalTeacher(dateStr);
+
+          for (let h = 0; h <= TOTAL_HOURS_TEACHER; h++) {
+            const topPx = (h / TOTAL_HOURS_TEACHER) * TIMELINE_HEIGHT_TEACHER;
+            const hourLabel = START_HOUR_TEACHER + h;
+
+            const line = document.createElement('div');
+            line.className = 'hour-grid-line';
+            line.style.top = `${topPx}px`;
+            timelineBox.appendChild(line);
+
+            if (h < TOTAL_HOURS_TEACHER) {
+              const txt = document.createElement('div');
+              txt.className = 'hour-grid-text';
+              txt.style.top = `${topPx + 8}px`;
+              txt.innerText = `${hourLabel}:00`;
+              timelineBox.appendChild(txt);
+            }
+          }
+
+          const dayCourses = (teacher.courses || []).filter(c => c.date === dateStr);
+          dayCourses.forEach(c => {
+            const startM = timeToMinutesTeacher(c.start);
+            const endM = timeToMinutesTeacher(c.end);
+            const baseM = START_HOUR_TEACHER * 60;
+            const totalM = TOTAL_HOURS_TEACHER * 60;
+
+            const top = Math.max(0, ((startM - baseM) / totalM) * TIMELINE_HEIGHT_TEACHER);
+            const bottom = Math.min(TIMELINE_HEIGHT_TEACHER, ((endM - baseM) / totalM) * TIMELINE_HEIGHT_TEACHER);
+            const height = Math.max(24, bottom - top);
+
+            const studentColor = getStudentColorTeacher(teacher, c.title);
+
+            const courseEl = document.createElement('div');
+            courseEl.className = 'course-block';
+            courseEl.style.backgroundColor = studentColor;
+            courseEl.style.color = '#1e293b';
+            courseEl.style.top = `${top}px`;
+            courseEl.style.height = `${height}px`;
+
+            if (selectedHighlightStudentTeacher) {
+              if (c.title === selectedHighlightStudentTeacher) {
+                courseEl.classList.add('focused-highlight');
+              } else {
+                courseEl.classList.add('dimmed-out');
+              }
+            }
+
+            courseEl.innerHTML = `
+              <div class="time-tag">${c.start}-${c.end}</div>
+              <div style="font-weight:700; font-size:11px;">${c.title}</div>
+            `;
+            courseEl.onclick = (e) => {
+              e.stopPropagation();
+              editExistingCourseTeacher(c);
+            };
+            timelineBox.appendChild(courseEl);
+          });
+
+          tdDay.appendChild(timelineBox);
+          trContent.appendChild(tdDay);
+        });
+
+        tbody.appendChild(trContent);
+      });
+
+      table.appendChild(tbody);
+      container.appendChild(table);
+    }
+
+    function toggleSingleDayRestTeacher(dateStr, dayOfWeek) {
+      pushHistoryTeacher();
+      const teacher = getTeacherObj();
+      if (!teacher.customRestDates) teacher.customRestDates = [];
+      if (!teacher.workOverrideDates) teacher.workOverrideDates = [];
+      if (!teacher.restDays) teacher.restDays = [];
+
+      const isCurrentRest = isTeacherRestDay(teacher, dateStr, dayOfWeek);
+
+      if (isCurrentRest) {
+        teacher.customRestDates = teacher.customRestDates.filter(d => d !== dateStr);
+        if (teacher.restDays.includes(dayOfWeek)) {
+          if (!teacher.workOverrideDates.includes(dateStr)) {
+            teacher.workOverrideDates.push(dateStr);
+          }
+        }
+      } else {
+        teacher.workOverrideDates = teacher.workOverrideDates.filter(d => d !== dateStr);
+        if (!teacher.customRestDates.includes(dateStr)) {
+          teacher.customRestDates.push(dateStr);
+        }
+      }
+
+      saveDataTeacher();
+      renderTeacherApp();
+    }
+
+    function renderStatsTeacher() {
+      const teacher = getTeacherObj();
+      if (!teacher) return;
+
+      const [yearStr, monthStr] = teacherAppData.currentMonth.split('-');
+      const year = parseInt(yearStr);
+      const month = parseInt(monthStr);
+      const totalDaysInMonth = new Date(year, month, 0).getDate();
+
+      let workDaysCount = 0;
+      let pubRestCount = 0;
+
+      for (let day = 1; day <= totalDaysInMonth; day++) {
+        const d = new Date(year, month - 1, day);
+        const dateStr = formatDateStr(d);
+        const dayOfWeek = d.getDay();
+
+        if (teacherAppData.publicHolidays && teacherAppData.publicHolidays.includes(dateStr)) {
+          pubRestCount++;
+        } else if (!isTeacherRestDay(teacher, dateStr, dayOfWeek)) {
+          workDaysCount++;
+        }
+      }
+
+      const totalWorkHours = workDaysCount * TOTAL_HOURS_TEACHER;
+
+      let totalBookedMinutes = 0;
+      (teacher.courses || []).forEach(c => {
+        if (c.date.startsWith(teacherAppData.currentMonth)) {
+          const [y, m, d] = c.date.split('-').map(Number);
+          const dayOfWeek = new Date(y, m - 1, d).getDay();
+          const isPub = teacherAppData.publicHolidays && teacherAppData.publicHolidays.includes(c.date);
+          if (!isPub && !isTeacherRestDay(teacher, c.date, dayOfWeek)) {
+            const dur = timeToMinutesTeacher(c.end) - timeToMinutesTeacher(c.start);
+            if (dur > 0) totalBookedMinutes += dur;
+          }
+        }
+      });
+
+      const bookedHours = (totalBookedMinutes / 60).toFixed(1);
+      const rate = totalWorkHours > 0 ? ((bookedHours / totalWorkHours) * 100).toFixed(1) : 0;
+
+      document.getElementById('statPublicRest').innerText = pubRestCount;
+      document.getElementById('statWorkDays').innerText = workDaysCount;
+      document.getElementById('statTotalHours').innerText = totalWorkHours;
+      document.getElementById('statBookedHours').innerText = bookedHours;
+      document.getElementById('statRate').innerText = `${rate}%`;
+    }
+
+    function populateStudentSelectsTeacher(selectedName = '') {
+      const teacher = getTeacherObj();
+      const students = teacher.students || [];
+      const batchSel = document.getElementById('batchStudentSelectTeacher');
+      const courseSel = document.getElementById('courseStudentSelectTeacher');
+
+      const buildOptions = () => {
+        if (students.length === 0) return '<option value="">(请先点击顶部添加学员)</option>';
+        return students.map(s => {
+          let prefix = s.paused ? '⏸️ [暂定] ' : '';
+          return `<option value="${s.name}" ${s.name === selectedName ? 'selected' : ''}>${prefix}${s.name}</option>`;
+        }).join('');
+      };
+
+      batchSel.innerHTML = buildOptions();
+      courseSel.innerHTML = buildOptions();
+    }
+
+    function openStudentManagerModalTeacher() {
+      const teacher = getTeacherObj();
+      document.getElementById('studentModalTitleTeacher').innerText = `管理【${teacher.name}】的学员名册`;
+      document.getElementById('newStudentNameInputTeacher').value = '';
+      document.getElementById('newStudentColorInputTeacher').value = PRESET_PALETTE_TEACHER[Math.floor(Math.random() * PRESET_PALETTE_TEACHER.length)];
+      renderStudentManageListTeacher();
+      document.getElementById('studentManagerModalTeacher').style.display = 'flex';
+    }
+
+    function renderStudentManageListTeacher() {
+      const teacher = getTeacherObj();
+      const container = document.getElementById('studentManageListContainerTeacher');
+      container.innerHTML = '';
+      const list = teacher.students || [];
+
+      if (list.length === 0) {
+        container.innerHTML = '<div style="font-size:12px; color:#94a3b8; text-align:center; padding:12px;">当前老师还没有学员，请在上方输入添加</div>';
+        return;
+      }
+
+      list.forEach((st, idx) => {
+        const item = document.createElement('div');
+        item.className = 'student-manage-item';
+        item.innerHTML = `
+          <div style="display:flex; align-items:center; gap:8px; flex:1;">
+            <input type="color" value="${st.color}" onchange="updateStudentColorTeacher(${idx}, this.value)" style="width:28px; height:24px; border:none; cursor:pointer;" title="修改颜色">
+            <span style="font-size:13px; font-weight:600;">${st.name}</span>
+          </div>
+          <div style="display:flex; align-items:center; gap:8px;">
+            <select class="status-select" onchange="updateStudentPausedStateTeacher(${idx}, this.value)">
+              <option value="false" ${!st.paused ? 'selected' : ''}>正常排课学员</option>
+              <option value="true" ${st.paused ? 'selected' : ''}>⏸️ 本月暂定不排</option>
+            </select>
+            <button onclick="removeStudentTeacher(${idx})" style="padding:2px 8px; font-size:11px; color:#dc2626; border-color:#fca5a5;">删除</button>
+          </div>
+        `;
+        container.appendChild(item);
+      });
+    }
+
+    function addStudentToCurrentTeacherTeacher() {
+      const name = document.getElementById('newStudentNameInputTeacher').value.trim();
+      const color = document.getElementById('newStudentColorInputTeacher').value;
+      if (!name) return alert('请输入学员姓名');
+
+      pushHistoryTeacher();
+      const teacher = getTeacherObj();
+      if (!teacher.students) teacher.students = [];
+      if (teacher.students.some(s => s.name === name)) return alert('该学员已存在');
+
+      teacher.students.push({ id: 's_' + Date.now(), name, color, paused: false });
+      saveDataTeacher();
+      document.getElementById('newStudentNameInputTeacher').value = '';
+      renderStudentManageListTeacher();
+      renderTeacherApp();
+    }
+
+    function updateStudentPausedStateTeacher(idx, val) {
+      pushHistoryTeacher();
+      const teacher = getTeacherObj();
+      teacher.students[idx].paused = (val === 'true');
+      saveDataTeacher();
+      renderTeacherApp();
+    }
+
+    function updateStudentColorTeacher(idx, color) {
+      pushHistoryTeacher();
+      const teacher = getTeacherObj();
+      teacher.students[idx].color = color;
+      saveDataTeacher();
+      renderTeacherApp();
+    }
+
+    function removeStudentTeacher(idx) {
+      if (!confirm('确定删除该学员吗？已排课表仍会保留该文字。')) return;
+      pushHistoryTeacher();
+      const teacher = getTeacherObj();
+      teacher.students.splice(idx, 1);
+      selectedHighlightStudentTeacher = null;
+      saveDataTeacher();
+      renderStudentManageListTeacher();
+      renderTeacherApp();
+    }
+
+    let batchSelectedDaysTeacher = new Set([6]);
+
+    function openBatchModalTeacher() {
+      const teacher = getTeacherObj();
+      if (!teacher.students || teacher.students.length === 0) {
+        alert('请先在顶部【👥 学员标识与管理】中为该老师添加学员！');
+        openStudentManagerModalTeacher();
+        return;
+      }
+      populateStudentSelectsTeacher();
+      document.getElementById('batchStartDateTeacher').value = formatDateStr(new Date());
+      document.getElementById('batchStartTimeTeacher').value = '09:00';
+      calculateBatchEndTimeTeacher();
+      renderBatchWeekdayButtonsTeacher();
+      document.getElementById('batchModalTeacher').style.display = 'flex';
+    }
+
+    function calculateBatchEndTimeTeacher() {
+      const startTime = document.getElementById('batchStartTimeTeacher').value || '09:00';
+      const durH = parseInt(document.getElementById('batchDurationHTeacher').value) || 0;
+      const durM = parseInt(document.getElementById('batchDurationMTeacher').value) || 0;
+      
+      const [sh, sm] = startTime.split(':').map(Number);
+      const totalM = sh * 60 + sm + (durH * 60 + durM);
+      const eh = Math.floor(totalM / 60) % 24;
+      const em = totalM % 60;
+      
+      const endStr = `${String(eh).padStart(2, '0')}:${String(em).padStart(2, '0')}`;
+      document.getElementById('batchEndTimeLabelTeacher').innerText = `下课时间: ${endStr}`;
+      return endStr;
+    }
+
+    function toggleBatchWeekdayTeacher(day) {
+      if (batchSelectedDaysTeacher.has(day)) batchSelectedDaysTeacher.delete(day);
+      else batchSelectedDaysTeacher.add(day);
+      renderBatchWeekdayButtonsTeacher();
+    }
+
+    function renderBatchWeekdayButtonsTeacher() {
+      const buttons = document.querySelectorAll('#batchWeekdayGroupTeacher .weekday-btn');
+      const dayMap = [1, 2, 3, 4, 5, 6, 0];
+      buttons.forEach((btn, idx) => {
+        if (batchSelectedDaysTeacher.has(dayMap[idx])) btn.classList.add('active');
+        else btn.classList.remove('active');
+      });
+    }
+
+    function applyBatchRuleBookingTeacher() {
+      const title = document.getElementById('batchStudentSelectTeacher').value;
+      const startDateStr = document.getElementById('batchStartDateTeacher').value;
+      const startTime = document.getElementById('batchStartTimeTeacher').value;
+      const endTime = calculateBatchEndTimeTeacher();
+      const count = parseInt(document.getElementById('batchCountTeacher').value) || 1;
+      const teacher = getTeacherObj();
+
+      if (!title) return alert('请选择学员');
+      if (!startDateStr) return alert('请选择开课起始日期');
+      if (batchSelectedDaysTeacher.size === 0) return alert('请至少选择一个规律上课日');
+
+      pushHistoryTeacher();
+      if (!teacher.courses) teacher.courses = [];
+
+      let scheduled = 0;
+      let curr = new Date(startDateStr);
+      let safety = 0;
+
+      while (scheduled < count && safety < 365) {
+        safety++;
+        const dateStr = formatDateStr(curr);
+        const dayOfWeek = curr.getDay();
+        const isPub = teacherAppData.publicHolidays && teacherAppData.publicHolidays.includes(dateStr);
+
+        if (batchSelectedDaysTeacher.has(dayOfWeek) && !isPub && !isTeacherRestDay(teacher, dateStr, dayOfWeek)) {
+          teacher.courses.push({
+            id: 'c_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
+            date: dateStr,
+            start: startTime,
+            end: endTime,
+            title: title
+          });
+          scheduled++;
+        }
+        curr.setDate(curr.getDate() + 1);
+      }
+
+      saveDataTeacher();
+      renderTeacherApp();
+      closeModalTeacher('batchModalTeacher');
+      alert(`🎉 批量排课成功！已顺延跳过公休日与休息日，共生成 ${scheduled} 节课程。`);
+    }
+
+    function openAddCourseModalTeacher(presetDate = '') {
+      const teacher = getTeacherObj();
+      if (!teacher.students || teacher.students.length === 0) {
+        alert('请先在顶部【👥 学员标识与管理】中添加学员！');
+        openStudentManagerModalTeacher();
+        return;
+      }
+      populateStudentSelectsTeacher();
+      document.getElementById('courseModalHeaderTeacher').innerText = '添加课程排课';
+      document.getElementById('btnDeleteCourseTeacher').style.display = 'none';
+      document.getElementById('editCourseIdTeacher').value = '';
+      document.getElementById('courseDateTeacher').value = presetDate || formatDateStr(new Date());
+      document.getElementById('courseStartTimeTeacher').value = '09:00';
+      document.getElementById('courseEndTimeTeacher').value = '10:00';
+      document.getElementById('addCourseModalTeacher').style.display = 'flex';
+    }
+
+    function editExistingCourseTeacher(course) {
+      populateStudentSelectsTeacher(course.title);
+      document.getElementById('courseModalHeaderTeacher').innerText = '编辑课程排课';
+      document.getElementById('btnDeleteCourseTeacher').style.display = 'inline-block';
+      document.getElementById('editCourseIdTeacher').value = course.id;
+      document.getElementById('courseDateTeacher').value = course.date;
+      document.getElementById('courseStartTimeTeacher').value = course.start;
+      document.getElementById('courseEndTimeTeacher').value = course.end;
+      document.getElementById('addCourseModalTeacher').style.display = 'flex';
+    }
+
+    function saveSingleCourseTeacher() {
+      const id = document.getElementById('editCourseIdTeacher').value;
+      const title = document.getElementById('courseStudentSelectTeacher').value;
+      const date = document.getElementById('courseDateTeacher').value;
+      const start = document.getElementById('courseStartTimeTeacher').value;
+      const end = document.getElementById('courseEndTimeTeacher').value;
+      const teacher = getTeacherObj();
+
+      if (!title) return alert('请选择学员');
+      if (!date || !start || !end) return alert('请完整填写日期与时间');
+      if (timeToMinutesTeacher(start) >= timeToMinutesTeacher(end)) return alert('开始时间必须早于结束时间');
+
+      pushHistoryTeacher();
+      if (!teacher.courses) teacher.courses = [];
+
+      if (id) {
+        const item = teacher.courses.find(c => c.id === id);
+        if (item) {
+          item.title = title;
+          item.date = date;
+          item.start = start;
+          item.end = end;
+        }
+      } else {
+        teacher.courses.push({
+          id: 'c_' + Date.now(),
+          title, date, start, end
+        });
+      }
+
+      saveDataTeacher();
+      renderTeacherApp();
+      closeModalTeacher('addCourseModalTeacher');
+    }
+
+    function deleteCurrentCourseTeacher() {
+      const id = document.getElementById('editCourseIdTeacher').value;
+      const teacher = getTeacherObj();
+      if (id && confirm('确定要删除这节课吗？')) {
+        pushHistoryTeacher();
+        teacher.courses = teacher.courses.filter(c => c.id !== id);
+        saveDataTeacher();
+        renderTeacherApp();
+        closeModalTeacher('addCourseModalTeacher');
+      }
+    }
+
+    function openPublicHolidayModalTeacher() {
+      document.getElementById('holidayPickerMonthTeacher').value = teacherAppData.currentMonth;
+      renderHolidayCalendarTeacher();
+      document.getElementById('publicHolidayModalTeacher').style.display = 'flex';
+    }
+
+    function renderHolidayCalendarTeacher() {
+      const monthVal = document.getElementById('holidayPickerMonthTeacher').value || teacherAppData.currentMonth;
+      const [year, month] = monthVal.split('-').map(Number);
+      const weeks = getMonthWeeksTeacher(year, month);
+      const wrap = document.getElementById('holidayCalendarWrapTeacher');
+
+      let html = '<table class="picker-calendar"><thead><tr>';
+      WEEK_DAYS_TEACHER.forEach(w => html += `<th>${w}</th>`);
+      html += '</tr></thead><tbody>';
+
+      weeks.forEach(week => {
+        html += '<tr>';
+        week.forEach(date => {
+          const isCurrMonth = (date.getMonth() + 1) === month;
+          const dateStr = formatDateStr(date);
+          const isHoliday = (teacherAppData.publicHolidays || []).includes(dateStr);
+
+          if (!isCurrMonth) {
+            html += `<td class="other-month">${date.getDate()}</td>`;
+          } else {
+            html += `<td class="${isHoliday ? 'selected-holiday' : ''}" onclick="toggleHolidayFromCalendarTeacher('${dateStr}')">${date.getDate()}</td>`;
+          }
+        });
+        html += '</tr>';
+      });
+
+      html += '</tbody></table>';
+      wrap.innerHTML = html;
+    }
+
+    function toggleHolidayFromCalendarTeacher(dateStr) {
+      pushHistoryTeacher();
+      if (!teacherAppData.publicHolidays) teacherAppData.publicHolidays = [];
+      if (teacherAppData.publicHolidays.includes(dateStr)) {
+        teacherAppData.publicHolidays = teacherAppData.publicHolidays.filter(d => d !== dateStr);
+      } else {
+        teacherAppData.publicHolidays.push(dateStr);
+      }
+      saveDataTeacher();
+      renderHolidayCalendarTeacher();
+      renderTeacherApp();
+    }
+
+    function openEditRestModalTeacher() {
+      const teacher = getTeacherObj();
+      document.getElementById('teacherRestModalTitleTeacher').innerText = `⚙️ 设置【${teacher.name}】的休息日`;
+      document.getElementById('teacherRestPickerMonthTeacher').value = teacherAppData.currentMonth;
+
+      const buttons = document.querySelectorAll('#editRestGroupTeacher .weekday-btn');
+      buttons.forEach(btn => {
+        const d = parseInt(btn.dataset.day);
+        if (teacher.restDays && teacher.restDays.includes(d)) btn.classList.add('active');
+        else btn.classList.remove('active');
+      });
+
+      renderTeacherRestCalendarTeacher();
+      document.getElementById('editRestModalTeacher').style.display = 'flex';
+    }
+
+    function toggleWeekRestBtnTeacher(btn, dayNum) {
+      pushHistoryTeacher();
+      const teacher = getTeacherObj();
+      if (!teacher.restDays) teacher.restDays = [];
+
+      if (teacher.restDays.includes(dayNum)) {
+        teacher.restDays = teacher.restDays.filter(d => d !== dayNum);
+        btn.classList.remove('active');
+      } else {
+        teacher.restDays.push(dayNum);
+        btn.classList.add('active');
+      }
+
+      saveDataTeacher();
+      renderTeacherRestCalendarTeacher();
+      renderTeacherApp();
+    }
+
+    function renderTeacherRestCalendarTeacher() {
+      const monthVal = document.getElementById('teacherRestPickerMonthTeacher').value || teacherAppData.currentMonth;
+      const [year, month] = monthVal.split('-').map(Number);
+      const weeks = getMonthWeeksTeacher(year, month);
+      const wrap = document.getElementById('teacherRestCalendarWrapTeacher');
+      const teacher = getTeacherObj();
+
+      let html = '<table class="picker-calendar"><thead><tr>';
+      WEEK_DAYS_TEACHER.forEach(w => html += `<th>${w}</th>`);
+      html += '</tr></thead><tbody>';
+
+      weeks.forEach(week => {
+        html += '<tr>';
+        week.forEach(date => {
+          const isCurrMonth = (date.getMonth() + 1) === month;
+          const dateStr = formatDateStr(date);
+          const dayOfWeek = date.getDay();
+          const isRest = isTeacherRestDay(teacher, dateStr, dayOfWeek);
+
+          if (!isCurrMonth) {
+            html += `<td class="other-month">${date.getDate()}</td>`;
+          } else {
+            html += `<td class="${isRest ? 'selected-teacher-rest' : ''}" onclick="toggleTeacherRestFromCalendarTeacher('${dateStr}', ${dayOfWeek})">${date.getDate()}</td>`;
+          }
+        });
+        html += '</tr>';
+      });
+
+      html += '</tbody></table>';
+      wrap.innerHTML = html;
+    }
+
+    function toggleTeacherRestFromCalendarTeacher(dateStr, dayOfWeek) {
+      toggleSingleDayRestTeacher(dateStr, dayOfWeek);
+      renderTeacherRestCalendarTeacher();
+    }
+
+    function toggleBtnSelectTeacher(btn) {
+      btn.classList.toggle('active');
+    }
+
+    function openAddTeacherModalTeacher() {
+      document.getElementById('newTeacherNameTeacher').value = '';
+      document.querySelectorAll('#newTeacherRestGroupTeacher .weekday-btn').forEach(b => b.classList.remove('active'));
+      document.getElementById('addTeacherModalTeacher').style.display = 'flex';
+    }
+
+    function saveTeacherTeacher() {
+      const name = document.getElementById('newTeacherNameTeacher').value.trim();
+      if (!name) return alert('请输入老师姓名');
+
+      pushHistoryTeacher();
+      const restDays = [];
+      document.querySelectorAll('#newTeacherRestGroupTeacher .weekday-btn').forEach(btn => {
+        if (btn.classList.contains('active')) restDays.push(parseInt(btn.dataset.day));
+      });
+
+      const newTeacher = {
+        id: Date.now().toString(),
+        name: name,
+        restDays: restDays,
+        customRestDates: [],
+        workOverrideDates: [],
+        students: [], 
+        courses: []
+      };
+
+      teacherAppData.teachers.push(newTeacher);
+      teacherAppData.currentTeacherId = newTeacher.id;
+      selectedHighlightStudentTeacher = null;
+      saveDataTeacher();
+      closeModalTeacher('addTeacherModalTeacher');
+      renderTeacherApp();
+    }
+
+    function closeModalTeacher(id) {
+      document.getElementById(id).style.display = 'none';
+    }
+
+    function exportDataTeacher() {
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(teacherAppData, null, 2));
+      const a = document.createElement('a');
+      a.setAttribute("href", dataStr);
+      a.setAttribute("download", `ZERO教师排课看板备份_${teacherAppData.currentMonth}.json`);
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    }
+
+    function importDataTeacher(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          const parsed = JSON.parse(e.target.result);
+          if (parsed.teachers && Array.isArray(parsed.teachers)) {
+            pushHistoryTeacher();
+            teacherAppData = parsed;
+            document.getElementById('monthPickerTeacher').value = teacherAppData.currentMonth;
+            selectedHighlightStudentTeacher = null;
+            saveDataTeacher();
+            renderTeacherApp();
+            alert('数据导入成功！');
+          } else {
+            alert('备份文件格式不正确');
+          }
+        } catch (err) {
+          alert('解析失败，请检查备份文件');
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    function renderTeacherApp() {
+      const picker = document.getElementById('monthPickerTeacher');
+      if (picker) picker.value = teacherAppData.currentMonth;
+      renderTabsTeacher();
+      renderStudentCategoriesTeacher();
+      renderStatsTeacher();
+      renderCalendarTeacher();
+      updateUndoRedoButtonStateTeacher();
+    }
+
+    // 页面初始化
+    window.onload = function() {
+      initMonthPicker();
+      fetchFromCloud();
+      renderTeacherApp();
+    };
+  </script>
 </body>
 </html>
