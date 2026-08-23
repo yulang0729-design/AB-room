@@ -1877,7 +1877,7 @@
     let activeDateKey = null;
     let previousScheduleBackup = null;
 
-    // 教师看板状态
+    // 教师看板常量与状态 (唯一定义)
     const WEEK_DAYS_TEACHER = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
     const START_HOUR_TEACHER = 9;
     const END_HOUR_TEACHER = 18;
@@ -1925,7 +1925,7 @@
       } catch(e) {}
     }
 
-    // 从本地 Storage 读取备用数据 (安全容错包装)
+    // 从本地 Storage 读取备用数据
     function loadLocalCache() {
       try {
         let rawTeacher = localStorage.getItem('ZERO_TIMELINE_SCHEDULE_DATA_V10');
@@ -2023,7 +2023,7 @@
       } catch(e) {}
 
       if (!supabaseClient) {
-        updateSyncBadges('🟡 本地运行模式');
+        updateSyncBadges('🟡 本地运行');
         return;
       }
 
@@ -2046,7 +2046,7 @@
         updateSyncBadges('🟢 云端已同步');
       } catch (err) {
         console.warn('云端写入提示:', err);
-        updateSyncBadges('🟡 本地已存(重试中)');
+        updateSyncBadges('🟡 本地已存');
       }
     }
 
@@ -2205,7 +2205,6 @@
       event.target.value = '';
     }
 
-    // 针对 Safari 与全平台的安全时间格式化
     function updateBJTime() {
       try {
         const now = new Date();
@@ -3705,6 +3704,7 @@
       a.remove();
     }
 
+    // 智能识别导入数据格式（无论是旧教师看板备份，还是工作台全量备份）
     function importDataTeacher(event) {
       const file = event.target.files[0];
       if (!file) return;
@@ -3725,9 +3725,10 @@
           document.getElementById('monthPickerTeacher').value = teacherAppData.currentMonth || "2026-08";
           selectedHighlightStudentTeacher = null;
           
+          // 导入后立即强制同步全量数据到 Supabase
           await syncAllToCloud();
           renderTeacherApp();
-          alert('🎉 教师数据导入成功！已同步至云端。');
+          alert('🎉 教师数据导入成功！已强制推送到云端并向所有在线设备同步。');
         } catch (err) {
           alert('解析失败，请检查备份文件');
         }
@@ -3786,7 +3787,7 @@
       forceSyncAllFromCloud();
     });
 
-    // 页面初始化
+    // 页面启动加载
     window.addEventListener('DOMContentLoaded', () => {
       loadLocalCache();
       initMonthPicker();
