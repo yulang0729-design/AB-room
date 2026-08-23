@@ -129,7 +129,7 @@
       flex-wrap: wrap;
     }
 
-    #view-workspace .sync-badge {
+    .global-sync-badge {
       font-size: 13px;
       background: #ecfdf5;
       color: #059669;
@@ -137,6 +137,8 @@
       border-radius: 20px;
       font-weight: 600;
       border: 1px solid #a7f3d0;
+      display: inline-flex;
+      align-items: center;
     }
 
     #view-workspace .timezone-badge {
@@ -797,18 +799,6 @@
       background-color: var(--primary-hover);
     }
 
-    #view-teacher .sync-badge-teacher {
-      font-size: 13px;
-      background: #ecfdf5;
-      color: #059669;
-      padding: 6px 14px;
-      border-radius: 20px;
-      font-weight: 600;
-      border: 1px solid #a7f3d0;
-      display: inline-flex;
-      align-items: center;
-    }
-
     #view-teacher .control-panel {
       display: flex;
       justify-content: space-between;
@@ -1377,14 +1367,15 @@
   </nav>
 
   <!-- =========================================================
-       页面 1: ZERO 工作台 (原 HTML 2)
+       页面 1: ZERO 工作台
        ========================================================= -->
   <div id="view-workspace" class="page-view-container active-view">
     <div class="ws-wrapper">
       <header>
         <h1>ZERO日本語・日本留学 - 工作台</h1>
         <div class="header-right">
-          <div class="sync-badge" id="sync-status">🟢 云端已连接</div>
+          <div class="global-sync-badge" id="sync-status">🟢 云端已连接</div>
+          <button class="btn-backup" onclick="forceSyncAllFromCloud()">🔄 刷新云端数据</button>
           <button class="btn-rescue" onclick="deepScanAndRescue()">🚨 深度扫描并恢复所有历史数据</button>
           <button class="btn-backup" onclick="exportDataBackup()">📦 导出备份</button>
           <button class="btn-backup" onclick="document.getElementById('import-file-input').click()">📥 导入备份</button>
@@ -1557,7 +1548,7 @@
   </div>
 
   <!-- =========================================================
-       页面 2: 教师月度排课看板 (原 HTML 1，已接入 Supabase)
+       页面 2: 教师月度排课看板 (已与 Supabase 统一打通)
        ========================================================= -->
   <div id="view-teacher" class="page-view-container">
     <div class="container">
@@ -1567,7 +1558,8 @@
           🌸 ZERO日本語・日本留学 <span>教师月度排课看板</span>
         </div>
         <div class="btn-group">
-          <div class="sync-badge-teacher" id="sync-status-teacher">🟢 云端已连接</div>
+          <div class="global-sync-badge" id="sync-status-teacher">🟢 云端已连接</div>
+          <button onclick="forceSyncAllFromCloud()">🔄 刷新云端数据</button>
           <button id="btnUndo" onclick="undoActionTeacher()" disabled title="撤销上一次操作">↩️ 撤销</button>
           <button id="btnRedo" onclick="redoActionTeacher()" disabled title="恢复上一步撤销的操作">↪️ 恢复</button>
           <button class="primary" onclick="openBatchModalTeacher()">⚡ 批量排课</button>
@@ -1868,27 +1860,76 @@
     }
 
     // =============================================================
-    // 共享 Supabase 客户端配置
+    // 统一 Supabase 云端同步引擎 (双端数据整合存储，杜绝多表/键值冲突)
     // =============================================================
     const SUPABASE_URL = 'https://qtjqqxbyussppagddket.supabase.co';
     const SUPABASE_KEY = 'sb_publishable_1FsnKarSCrEwwpmm-Fm-mg_g3owbnp-';
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    // =============================================================
-    // 模块 1: ZERO 工作台 (Supabase + A/B 教室排课) 逻辑
-    // =============================================================
+    // 工作台状态
     let scheduleData = {};
     let holidays = {};
     let classes = [];
     let milestones = [];
     let products = [];
     let countdowns = [];
-
     let activeCellKey = null;
     let activeDateKey = null;
     let previousScheduleBackup = null;
 
-    function loadAllStorageData() {
+    // 教师看板状态
+    const WEEK_DAYS_TEACHER = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
+    const START_HOUR_TEACHER = 9;
+    const END_HOUR_TEACHER = 18;
+    const TOTAL_HOURS_TEACHER = END_HOUR_TEACHER - START_HOUR_TEACHER;
+    const TIMELINE_HEIGHT_TEACHER = 360;
+    const PRESET_PALETTE_TEACHER = [
+      "#fef08a", "#f3e8ff", "#fce7f3", "#dcfce7", "#e0e7ff",
+      "#ffedd5", "#cffafe", "#fee2e2", "#f1f5f9", "#fae8ff"
+    ];
+
+    let teacherAppData = {
+      currentTeacherId: "1",
+      currentMonth: "2026-08",
+      publicHolidays: ["2026-08-01"],
+      teachers: [
+        {
+          id: "1",
+          name: "纯礼老师",
+          restDays: [4, 5],
+          customRestDates: ["2026-08-18"],
+          workOverrideDates: [],
+          students: [
+            { id: "s1", name: "若希", color: "#fef08a", paused: false },
+            { id: "s2", name: "雨濛", color: "#dcfce7", paused: false },
+            { id: "s3", name: "张磊", color: "#f3e8ff", paused: false },
+            { id: "s4", name: "李同学", color: "#f1f5f9", paused: true }
+          ],
+          courses: [
+            { id: "c1", date: "2026-08-04", start: "09:30", end: "10:45", title: "张磊" }
+          ]
+        }
+      ]
+    };
+
+    let selectedHighlightStudentTeacher = null;
+    let undoStackTeacher = [];
+    let redoStackTeacher = [];
+
+    function updateSyncBadges(statusText) {
+      const b1 = document.getElementById('sync-status');
+      const b2 = document.getElementById('sync-status-teacher');
+      if (b1) b1.innerText = statusText;
+      if (b2) b2.innerText = statusText;
+    }
+
+    // 从本地 Storage 读取备用数据
+    function loadLocalCache() {
+      try {
+        let rawTeacher = localStorage.getItem('ZERO_TIMELINE_SCHEDULE_DATA_V10');
+        if (rawTeacher) teacherAppData = JSON.parse(rawTeacher);
+      } catch(e) {}
+
       let combinedSchedule = {};
       let combinedHolidays = {};
       let combinedClasses = [];
@@ -1917,18 +1958,10 @@
             let parsed = JSON.parse(raw);
             if (Array.isArray(parsed)) {
               parsed.forEach(c => {
-                if (!combinedClasses.some(item => item.name === c.name)) {
-                  combinedClasses.push(c);
-                }
+                if (!combinedClasses.some(item => item.name === c.name)) combinedClasses.push(c);
               });
             }
           } catch(e) {}
-        }
-      });
-
-      Object.values(combinedSchedule).forEach(name => {
-        if (name && typeof name === 'string' && !combinedClasses.some(c => c.name === name)) {
-          combinedClasses.push({ name: name, color: '#3b82f6' });
         }
       });
 
@@ -1963,28 +1996,19 @@
       let savedCountdownsRaw = localStorage.getItem('zero_custom_countdowns');
       if (savedCountdownsRaw) {
         try { combinedCountdowns = JSON.parse(savedCountdownsRaw); } catch(e) {}
-      } else {
-        let reg = localStorage.getItem('zero_timer_reg');
-        let exam = localStorage.getItem('zero_timer_exam');
-        let score = localStorage.getItem('zero_timer_score');
-        if (reg) combinedCountdowns.push({ id: 1, name: 'JLPT 报名倒计时', targetTime: reg });
-        if (exam) combinedCountdowns.push({ id: 2, name: 'JLPT 考试倒计时', targetTime: exam });
-        if (score) combinedCountdowns.push({ id: 3, name: 'JLPT 查成绩倒计时', targetTime: score });
       }
 
-      return {
-        scheduleData: combinedSchedule,
-        holidays: combinedHolidays,
-        classes: combinedClasses,
-        milestones: combinedMilestones,
-        products: combinedProducts,
-        countdowns: combinedCountdowns
-      };
+      scheduleData = combinedSchedule;
+      holidays = combinedHolidays;
+      classes = combinedClasses;
+      milestones = combinedMilestones;
+      products = combinedProducts;
+      countdowns = combinedCountdowns;
     }
 
-    async function syncToCloud() {
-      const badge = document.getElementById('sync-status');
-      if (badge) badge.innerText = '🔄 同步中...';
+    // 全局统一云端同步（写入）
+    async function syncAllToCloud() {
+      updateSyncBadges('🔄 同步中...');
 
       localStorage.setItem('zero_schedule_v2', JSON.stringify(scheduleData));
       localStorage.setItem('zero_holidays', JSON.stringify(holidays));
@@ -1992,38 +2016,53 @@
       localStorage.setItem('zero_milestones', JSON.stringify(milestones));
       localStorage.setItem('zero_products', JSON.stringify(products));
       localStorage.setItem('zero_custom_countdowns', JSON.stringify(countdowns));
+      localStorage.setItem('ZERO_TIMELINE_SCHEDULE_DATA_V10', JSON.stringify(teacherAppData));
 
-      const fullState = { scheduleData, holidays, classes, milestones, products, countdowns };
+      const unifiedMasterState = {
+        scheduleData,
+        holidays,
+        classes,
+        milestones,
+        products,
+        countdowns,
+        teacherAppData
+      };
 
       try {
         const { error } = await supabaseClient
           .from('app_workspace_data')
-          .upsert({ id: 'workspace_main', data: fullState, updated_at: new Date().toISOString() });
+          .upsert({ id: 'workspace_main', data: unifiedMasterState, updated_at: new Date().toISOString() });
 
         if (error) throw error;
-        if (badge) badge.innerText = '🟢 云端已同步';
+        updateSyncBadges('🟢 云端已同步');
       } catch (err) {
-        console.error('工作台云端同步失败:', err);
-        if (badge) badge.innerText = '🟡 本地已存(云端重试中)';
+        console.error('云端同步失败:', err);
+        updateSyncBadges('🟡 本地已存(重试中)');
       }
     }
 
-    async function fetchFromCloud() {
-      const badge = document.getElementById('sync-status');
+    // 全局统一云端拉取（读取）
+    async function forceSyncAllFromCloud() {
+      updateSyncBadges('🔄 拉取云端中...');
       try {
         const { data, error } = await supabaseClient
           .from('app_workspace_data')
           .select('data')
           .eq('id', 'workspace_main')
-          .single();
+          .maybeSingle();
 
         if (data && data.data) {
-          scheduleData = data.data.scheduleData || {};
-          holidays = data.data.holidays || {};
-          classes = data.data.classes || [];
-          milestones = data.data.milestones || [];
-          products = data.data.products || [];
-          countdowns = data.data.countdowns || [];
+          const d = data.data;
+          scheduleData = d.scheduleData || {};
+          holidays = d.holidays || {};
+          classes = d.classes || [];
+          milestones = d.milestones || [];
+          products = d.products || [];
+          countdowns = d.countdowns || [];
+
+          if (d.teacherAppData && Array.isArray(d.teacherAppData.teachers)) {
+            teacherAppData = d.teacherAppData;
+          }
 
           localStorage.setItem('zero_schedule_v2', JSON.stringify(scheduleData));
           localStorage.setItem('zero_holidays', JSON.stringify(holidays));
@@ -2031,32 +2070,25 @@
           localStorage.setItem('zero_milestones', JSON.stringify(milestones));
           localStorage.setItem('zero_products', JSON.stringify(products));
           localStorage.setItem('zero_custom_countdowns', JSON.stringify(countdowns));
+          localStorage.setItem('ZERO_TIMELINE_SCHEDULE_DATA_V10', JSON.stringify(teacherAppData));
 
-          if (badge) badge.innerText = '🟢 云端已连接';
+          updateSyncBadges('🟢 云端已连接');
         } else {
-          const localData = loadAllStorageData();
-          scheduleData = localData.scheduleData;
-          holidays = localData.holidays;
-          classes = localData.classes;
-          milestones = localData.milestones;
-          products = localData.products;
-          countdowns = localData.countdowns;
-          await syncToCloud();
+          loadLocalCache();
+          await syncAllToCloud();
         }
       } catch (err) {
-        console.warn('拉取工作台云端数据失败，回退到本地缓存:', err);
-        const localData = loadAllStorageData();
-        scheduleData = localData.scheduleData;
-        holidays = localData.holidays;
-        classes = localData.classes;
-        milestones = localData.milestones;
-        products = localData.products;
-        countdowns = localData.countdowns;
+        console.warn('云端拉取失败，回退至本地缓存:', err);
+        loadLocalCache();
       }
 
       renderAllComponents();
+      renderTeacherApp();
     }
 
+    // =============================================================
+    // 工作台功能函数
+    // =============================================================
     function renderAllComponents() {
       renderCountdowns();
       renderClasses();
@@ -2067,15 +2099,8 @@
     }
 
     function deepScanAndRescue() {
-      const reloaded = loadAllStorageData();
-      scheduleData = reloaded.scheduleData;
-      holidays = reloaded.holidays;
-      classes = reloaded.classes;
-      milestones = reloaded.milestones;
-      products = reloaded.products;
-      countdowns = reloaded.countdowns;
-
-      syncToCloud();
+      loadLocalCache();
+      syncAllToCloud();
 
       let dates = Object.keys(scheduleData).map(k => k.split('_')[1]).filter(Boolean);
       if (dates.length > 0) {
@@ -2086,9 +2111,8 @@
       }
 
       renderAllComponents();
-      let classCount = Object.keys(scheduleData).length;
-      let holidayCount = Object.keys(holidays).length;
-      alert(`🎉 扫描完成！共定位到已排课节数：${classCount} 节，班级：${classes.length} 个，节假日：${holidayCount} 天。已自动为您展示并推送到云端！`);
+      renderTeacherApp();
+      alert(`🎉 扫描完成！工作台与教师看板数据已全量同步到云端！`);
     }
 
     function formatDateStr(d) {
@@ -2101,9 +2125,7 @@
     function getContrastYIQ(hexcolor){
       if(!hexcolor || hexcolor.charAt(0) !== '#') return 'black';
       hexcolor = hexcolor.replace("#", "");
-      if(hexcolor.length === 3) {
-        hexcolor = hexcolor.split('').map(c => c + c).join('');
-      }
+      if(hexcolor.length === 3) hexcolor = hexcolor.split('').map(c => c + c).join('');
       var r = parseInt(hexcolor.substr(0,2),16);
       var g = parseInt(hexcolor.substr(2,2),16);
       var b = parseInt(hexcolor.substr(4,2),16);
@@ -2113,19 +2135,14 @@
 
     function exportDataBackup() {
       const fullBackup = {
-        scheduleData,
-        holidays,
-        milestones,
-        classes,
-        products,
-        countdowns,
+        scheduleData, holidays, milestones, classes, products, countdowns, teacherAppData,
         exportTime: new Date().toLocaleString()
       };
       const blob = new Blob([JSON.stringify(fullBackup, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `ZERO工作台备份_${formatDateStr(new Date())}.json`;
+      a.download = `ZERO综合管理备份_${formatDateStr(new Date())}.json`;
       a.click();
       URL.revokeObjectURL(url);
     }
@@ -2144,10 +2161,12 @@
           if (data.classes) classes = data.classes;
           if (data.products) products = data.products;
           if (data.countdowns) countdowns = data.countdowns;
+          if (data.teacherAppData) teacherAppData = data.teacherAppData;
 
-          await syncToCloud();
+          await syncAllToCloud();
           alert('🎉 备份数据已成功恢复并同步到云端！');
           renderAllComponents();
+          renderTeacherApp();
         } catch(err) {
           alert('导入失败，文件格式不正确！');
         }
@@ -2171,36 +2190,28 @@
       const name = nameInput.value.trim();
       const targetTime = timeInput.value;
 
-      if (!name) { alert('请输入倒计时事件名称！'); return; }
-      if (!targetTime) { alert('请选择目标倒计时时间！'); return; }
+      if (!name) return alert('请输入倒计时事件名称！');
+      if (!targetTime) return alert('请选择目标倒计时时间！');
 
-      countdowns.push({
-        id: Date.now(),
-        name: name,
-        targetTime: targetTime
-      });
-
-      syncToCloud();
-      nameInput.value = '';
-      timeInput.value = '';
+      countdowns.push({ id: Date.now(), name, targetTime });
+      syncAllToCloud();
+      nameInput.value = ''; timeInput.value = '';
       renderCountdowns();
     }
 
     function deleteCountdown(id) {
       countdowns = countdowns.filter(c => c.id !== id);
-      syncToCloud();
+      syncAllToCloud();
       renderCountdowns();
     }
 
     function renderCountdowns() {
       const container = document.getElementById('countdown-list');
       container.innerHTML = '';
-
       if (countdowns.length === 0) {
         container.innerHTML = `<div style="font-size:13px; color:#6b7280; grid-column: 1/-1;">暂无倒计时项目，请在上方输入事件名称与时间进行添加。</div>`;
         return;
       }
-
       countdowns.forEach(c => {
         let card = document.createElement('div');
         card.className = 'countdown-item';
@@ -2222,10 +2233,8 @@
       countdowns.forEach(c => {
         const el = document.getElementById(`timer-display-${c.id}`);
         if (!el) return;
-
         const target = new Date(c.targetTime).getTime();
         const diff = target - now;
-
         if (diff > 0) {
           const days = Math.floor(diff / (1000 * 60 * 60 * 24));
           const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
@@ -2242,12 +2251,11 @@
     function addClass() {
       const name = document.getElementById('class-name').value.trim();
       const color = document.getElementById('class-color').value;
-
-      if (!name) { alert('请输入班级名称！'); return; }
-      if (classes.some(c => c.name === name)) { alert('该班级名称已存在！'); return; }
+      if (!name) return alert('请输入班级名称！');
+      if (classes.some(c => c.name === name)) return alert('该班级名称已存在！');
 
       classes.push({ name, color });
-      syncToCloud();
+      syncAllToCloud();
       document.getElementById('class-name').value = '';
       renderClasses();
     }
@@ -2256,16 +2264,14 @@
       let targetName = classes[index].name;
       if(confirm(`确定删除班级“${targetName}”吗？\n（注：删除班级不会自动清空课表，如需清空排课请点击“清空排课”）`)){
         classes.splice(index, 1);
-        syncToCloud();
+        syncAllToCloud();
         renderClasses();
         renderCalendars();
       }
     }
 
     function clearAllScheduleForClass(className) {
-      if (!confirm(`⚠️ 确定要清空【${className}】在 A/B 教室的所有排课吗？`)) {
-        return;
-      }
+      if (!confirm(`⚠️ 确定要清空【${className}】在 A/B 教室的所有排课吗？`)) return;
 
       previousScheduleBackup = JSON.parse(JSON.stringify(scheduleData));
       document.getElementById('undo-btn').disabled = false;
@@ -2279,8 +2285,7 @@
       });
 
       milestones = milestones.filter(m => m.className !== className);
-      syncToCloud();
-
+      syncAllToCloud();
       alert(`已成功清空【${className}】的全部排课（共清除 ${clearedCount} 节课）。`);
       renderMilestones();
       renderCalendars();
@@ -2332,32 +2337,19 @@
       const className = document.getElementById('milestone-class-select').value;
       const type = document.getElementById('milestone-type-select').value;
       const dateKey = document.getElementById('milestone-date').value;
+      if(!className) return alert('请选择班级！');
+      if(!dateKey) return alert('请选择节点日期！');
 
-      if(!className) { alert('请选择班级！'); return; }
-      if(!dateKey) { alert('请选择节点日期！'); return; }
-
-      saveMilestoneDirectly(className, type, dateKey);
-    }
-
-    function saveMilestoneDirectly(className, type, dateKey) {
-      let newItem = {
-        id: Date.now(),
-        className,
-        type,
-        dateKey
-      };
-
-      milestones.push(newItem);
+      milestones.push({ id: Date.now(), className, type, dateKey });
       milestones.sort((a, b) => a.dateKey.localeCompare(b.dateKey));
-
-      syncToCloud();
+      syncAllToCloud();
       renderMilestones();
       renderCalendars();
     }
 
     function deleteMilestone(id) {
       milestones = milestones.filter(m => m.id !== id);
-      syncToCloud();
+      syncAllToCloud();
       renderMilestones();
       renderCalendars();
     }
@@ -2365,12 +2357,10 @@
     function renderMilestones() {
       const container = document.getElementById('milestone-summary-list');
       container.innerHTML = '';
-
       if (milestones.length === 0) {
         container.innerHTML = `<div style="font-size:13px; color:#6b7280;">暂无标记节点，您可在点击日历排课块时一键标记，或在上方选班标注“开班”、“半期”、“结课”。</div>`;
         return;
       }
-
       milestones.forEach(m => {
         let targetRooms = getRoomsForClass(m.className);
         let roomDesc = targetRooms.length > 0 ? ` (教室 ${targetRooms.join('/')})` : '';
@@ -2396,25 +2386,24 @@
       const endStr = document.getElementById('holiday-end').value || startStr;
       const name = document.getElementById('holiday-name').value.trim() || '休假';
 
-      if (!startStr) { alert('请选择开始日期！'); return; }
+      if (!startStr) return alert('请选择开始日期！');
       let curr = new Date(startStr);
       let end = new Date(endStr);
-      if (curr > end) { alert('开始日期不能晚于结束日期！'); return; }
+      if (curr > end) return alert('开始日期不能晚于结束日期！');
 
       while (curr <= end) {
         let dateKey = formatDateStr(curr);
         holidays[dateKey] = name;
         curr.setDate(curr.getDate() + 1);
       }
-
-      syncToCloud();
+      syncAllToCloud();
       renderHolidays();
       renderCalendars();
     }
 
     function deleteHoliday(dateKey) {
       delete holidays[dateKey];
-      syncToCloud();
+      syncAllToCloud();
       renderHolidays();
       renderCalendars();
     }
@@ -2436,13 +2425,12 @@
       const period = document.getElementById('batch-period').value;
       const room = document.getElementById('batch-room').value;
       const count = parseInt(document.getElementById('batch-count').value);
-
       const checkedWeeks = Array.from(document.querySelectorAll('input[name="batch-week"]:checked')).map(cb => parseInt(cb.value));
 
-      if (!className) { alert('请先选择要排课的班级！'); return; }
-      if (!startStr) { alert('请选择开始日期！'); return; }
-      if (checkedWeeks.length === 0) { alert('请至少勾选一个每周上课的星期！'); return; }
-      if (!count || count <= 0) { alert('请填写有效的总课次数！'); return; }
+      if (!className) return alert('请先选择要排课的班级！');
+      if (!startStr) return alert('请选择开始日期！');
+      if (checkedWeeks.length === 0) return alert('请至少勾选一个每周上课的星期！');
+      if (!count || count <= 0) return alert('请填写有效的总课次数！');
 
       if (isOverwrite) {
         if (!confirm(`⚠️ 确定要重新规划【${className}】的排课吗？`)) return;
@@ -2478,11 +2466,9 @@
       }
 
       if (conflictDetails.length > 0) {
-        let warningMsg = `⚠️ 排课冲突警告！在 教室 ${room} 发现以下 ${conflictDetails.length} 处时间冲突：\n\n` +
-                         conflictDetails.slice(0, 10).join('\n') + 
-                         (conflictDetails.length > 10 ? `\n...等共 ${conflictDetails.length} 处冲突` : '') +
+        let warningMsg = `⚠️ 排课冲突警告！在 教室 ${room} 发现以下 ${conflictDetails.length} 处冲突：\n\n` +
+                         conflictDetails.slice(0, 10).join('\n') +
                          `\n\n请选择：\n【确定】强行覆盖已有课程\n【取消】放弃排课并手动调整`;
-        
         if (!confirm(warningMsg)) return;
       }
 
@@ -2491,9 +2477,7 @@
 
       if (isOverwrite) {
         Object.keys(scheduleData).forEach(key => {
-          if (scheduleData[key] === className) {
-            delete scheduleData[key];
-          }
+          if (scheduleData[key] === className) delete scheduleData[key];
         });
       }
 
@@ -2501,22 +2485,18 @@
         scheduleData[slotKey] = className;
       });
 
-      syncToCloud();
+      syncAllToCloud();
       let actionText = isOverwrite ? "重新规划完成" : "排课成功";
-      let msg = `${actionText}！已为【${className}】在 教室 ${room} 顺利排入 ${count} 次课。`;
-      if (conflictDetails.length > 0) msg += `\n（已按指令覆盖冲突排课）`;
-      if (skippedDates.length > 0) msg += `\n期间自动跳过 ${skippedDates.length} 天节假日。`;
-      alert(msg);
+      alert(`${actionText}！已为【${className}】在 教室 ${room} 顺利排入 ${count} 次课。`);
       renderMilestones();
       renderCalendars();
     }
 
     function undoLastBatch() {
       if (!previousScheduleBackup) return;
-
       if (confirm('确认要撤销上一次的操作吗？课表将恢复到操作前。')) {
         scheduleData = JSON.parse(JSON.stringify(previousScheduleBackup));
-        syncToCloud();
+        syncAllToCloud();
         previousScheduleBackup = null;
         document.getElementById('undo-btn').disabled = true;
         alert('已成功撤销上一次操作！');
@@ -2529,7 +2509,6 @@
       const yearSelect = document.getElementById('year-select');
       const monthSelect = document.getElementById('month-select');
       const now = new Date();
-
       let targetYear = now.getFullYear();
       let targetMonth = now.getMonth() + 1;
 
@@ -2583,19 +2562,14 @@
       document.getElementById('data-stats-hint').innerText = `📊 本月已排课：${currentMonthLessons} 节 | 系统总排课：${Object.keys(scheduleData).length} 节`;
 
       let gridDays = [];
-      for (let i = 0; i < startOffset; i++) {
-        gridDays.push({ type: 'empty' });
-      }
+      for (let i = 0; i < startOffset; i++) gridDays.push({ type: 'empty' });
       for (let d = 1; d <= daysInMonth; d++) {
         let dateKey = `${year}-${month.toString().padStart(2, '0')}-${d.toString().padStart(2, '0')}`;
         gridDays.push({ type: 'day', dayNum: d, dateKey: dateKey, holidayName: holidays[dateKey] || null });
       }
-      while (gridDays.length % 7 !== 0) {
-        gridDays.push({ type: 'empty' });
-      }
+      while (gridDays.length % 7 !== 0) gridDays.push({ type: 'empty' });
 
       const periods = ['上午', '下午', '晚上'];
-
       const badgeIconMap = {
         '开班': { icon: '🟢开', bg: '#16a34a' },
         '半期': { icon: '🟡半', bg: '#eab308' },
@@ -2623,7 +2597,6 @@
               html += '<td class="day-cell other-month"></td>';
             } else {
               let isHoliday = !!item.holidayName;
-
               let dayMilestones = milestones.filter(m => {
                 if (m.dateKey !== item.dateKey) return false;
                 let roomsForClass = getRoomsForClass(m.className);
@@ -2663,7 +2636,6 @@
                   }
 
                   let titleText = isOccupied ? `${p}: ${className}` : `${p}: 空闲`;
-
                   html += `<div class="period-slot ${isOccupied ? 'occupied' : ''}" ${customStyle}
                                onclick="openModalWs('${slotKey}', '${className}', '${item.dateKey}', '教室 ${room} | ${item.dateKey} ${p}')">
                             <span style="overflow:hidden; text-overflow:ellipsis;">${titleText}</span>
@@ -2686,18 +2658,12 @@
     function openModalWs(key, className, dateKey, title) {
       activeCellKey = key;
       activeDateKey = dateKey;
-      
       document.getElementById('modal-time-title').innerText = title;
       document.getElementById('modal-class-select').value = className;
       document.getElementById('modal-date-display').innerText = dateKey;
 
       const quickArea = document.getElementById('quick-milestone-area');
-      if (className) {
-        quickArea.style.display = 'block';
-      } else {
-        quickArea.style.display = 'none';
-      }
-
+      quickArea.style.display = className ? 'block' : 'none';
       document.getElementById('course-modal').style.display = 'flex';
     }
 
@@ -2707,14 +2673,13 @@
 
     function quickMarkMilestone(type) {
       const className = document.getElementById('modal-class-select').value;
-      if (!className) {
-        alert('请先为此时段选择一个班级！');
-        return;
-      }
-
-      saveMilestoneDirectly(className, type, activeDateKey);
-      alert(`已将 ${activeDateKey} 设为【${className}】的【${type}】节点！`);
+      if (!className) return alert('请先为此时段选择一个班级！');
+      milestones.push({ id: Date.now(), className, type, dateKey: activeDateKey });
+      milestones.sort((a, b) => a.dateKey.localeCompare(b.dateKey));
+      syncAllToCloud();
       closeModalWs();
+      renderMilestones();
+      renderCalendars();
     }
 
     function saveSingleSlot() {
@@ -2722,15 +2687,13 @@
       let oldClass = scheduleData[activeCellKey];
 
       if (oldClass && className && oldClass !== className) {
-        if (!confirm(`⚠️ 该时段当前已被【${oldClass}】占用，确定要更改为【${className}】吗？`)) {
-          return;
-        }
+        if (!confirm(`⚠️ 该时段当前已被【${oldClass}】占用，确定要更改为【${className}】吗？`)) return;
       }
 
       if(className) scheduleData[activeCellKey] = className;
       else delete scheduleData[activeCellKey];
 
-      syncToCloud();
+      syncAllToCloud();
       closeModalWs();
       renderMilestones();
       renderCalendars();
@@ -2738,7 +2701,7 @@
 
     function clearSingleSlot() {
       delete scheduleData[activeCellKey];
-      syncToCloud();
+      syncAllToCloud();
       closeModalWs();
       renderMilestones();
       renderCalendars();
@@ -2769,7 +2732,7 @@
 
       if (name && price) {
         products.push({ name, price });
-        syncToCloud();
+        syncAllToCloud();
         nameInput.value = ''; priceInput.value = '';
         renderProducts();
       } else {
@@ -2779,96 +2742,13 @@
 
     function deleteProduct(index) {
       products.splice(index, 1);
-      syncToCloud();
+      syncAllToCloud();
       renderProducts();
     }
 
     // =============================================================
-    // 模块 2: 教师月度排课看板逻辑 (已接入 Supabase 云端同步)
+    // 教师看板功能函数
     // =============================================================
-    const WEEK_DAYS_TEACHER = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
-    const START_HOUR_TEACHER = 9;
-    const END_HOUR_TEACHER = 18;
-    const TOTAL_HOURS_TEACHER = END_HOUR_TEACHER - START_HOUR_TEACHER;
-    const TIMELINE_HEIGHT_TEACHER = 360;
-
-    const PRESET_PALETTE_TEACHER = [
-      "#fef08a", "#f3e8ff", "#fce7f3", "#dcfce7", "#e0e7ff",
-      "#ffedd5", "#cffafe", "#fee2e2", "#f1f5f9", "#fae8ff"
-    ];
-
-    let teacherAppData = JSON.parse(localStorage.getItem('ZERO_TIMELINE_SCHEDULE_DATA_V10')) || {
-      currentTeacherId: "1",
-      currentMonth: "2026-08",
-      publicHolidays: ["2026-08-01"],
-      teachers: [
-        {
-          id: "1",
-          name: "纯礼老师",
-          restDays: [4, 5],
-          customRestDates: ["2026-08-18"],
-          workOverrideDates: [],
-          students: [
-            { id: "s1", name: "若希", color: "#fef08a", paused: false },
-            { id: "s2", name: "雨濛", color: "#dcfce7", paused: false },
-            { id: "s3", name: "张磊", color: "#f3e8ff", paused: false },
-            { id: "s4", name: "李同学", color: "#f1f5f9", paused: true }
-          ],
-          courses: [
-            { id: "c1", date: "2026-08-04", start: "09:30", end: "10:45", title: "张磊" }
-          ]
-        }
-      ]
-    };
-
-    let selectedHighlightStudentTeacher = null;
-    let undoStackTeacher = [];
-    let redoStackTeacher = [];
-
-    // 教师端云端同步机制
-    async function syncTeacherToCloud() {
-      const badge = document.getElementById('sync-status-teacher');
-      if (badge) badge.innerText = '🔄 同步中...';
-
-      localStorage.setItem('ZERO_TIMELINE_SCHEDULE_DATA_V10', JSON.stringify(teacherAppData));
-
-      try {
-        const { error } = await supabaseClient
-          .from('app_workspace_data')
-          .upsert({ id: 'teacher_schedule_main', data: teacherAppData, updated_at: new Date().toISOString() });
-
-        if (error) throw error;
-        if (badge) badge.innerText = '🟢 云端已同步';
-      } catch (err) {
-        console.error('教师看板云端同步失败:', err);
-        if (badge) badge.innerText = '🟡 本地已存(云端重试中)';
-      }
-    }
-
-    async function fetchTeacherFromCloud() {
-      const badge = document.getElementById('sync-status-teacher');
-      try {
-        const { data, error } = await supabaseClient
-          .from('app_workspace_data')
-          .select('data')
-          .eq('id', 'teacher_schedule_main')
-          .single();
-
-        if (data && data.data && Array.isArray(data.data.teachers)) {
-          teacherAppData = data.data;
-          localStorage.setItem('ZERO_TIMELINE_SCHEDULE_DATA_V10', JSON.stringify(teacherAppData));
-          if (badge) badge.innerText = '🟢 云端已连接';
-        } else {
-          // 云端无数据时将本地默认数据推送上去
-          await syncTeacherToCloud();
-        }
-      } catch (err) {
-        console.warn('拉取教师看板云端数据失败，使用本地缓存:', err);
-      }
-
-      renderTeacherApp();
-    }
-
     function pushHistoryTeacher() {
       undoStackTeacher.push(JSON.stringify(teacherAppData));
       if (undoStackTeacher.length > 30) undoStackTeacher.shift();
@@ -2881,7 +2761,7 @@
       redoStackTeacher.push(JSON.stringify(teacherAppData));
       const prev = undoStackTeacher.pop();
       teacherAppData = JSON.parse(prev);
-      syncTeacherToCloud();
+      syncAllToCloud();
       updateUndoRedoButtonStateTeacher();
       renderTeacherApp();
     }
@@ -2891,7 +2771,7 @@
       undoStackTeacher.push(JSON.stringify(teacherAppData));
       const next = redoStackTeacher.pop();
       teacherAppData = JSON.parse(next);
-      syncTeacherToCloud();
+      syncAllToCloud();
       updateUndoRedoButtonStateTeacher();
       renderTeacherApp();
     }
@@ -2908,7 +2788,7 @@
     }
 
     function saveDataTeacher() {
-      syncTeacherToCloud();
+      syncAllToCloud();
       renderStatsTeacher();
     }
 
@@ -2916,7 +2796,7 @@
       if (!val) return;
       teacherAppData.currentMonth = val;
       selectedHighlightStudentTeacher = null;
-      syncTeacherToCloud();
+      syncAllToCloud();
       renderTeacherApp();
     }
 
@@ -2925,7 +2805,7 @@
       const prev = new Date(y, m - 2, 1);
       teacherAppData.currentMonth = `${prev.getFullYear()}-${String(prev.getMonth() + 1).padStart(2, '0')}`;
       selectedHighlightStudentTeacher = null;
-      syncTeacherToCloud();
+      syncAllToCloud();
       renderTeacherApp();
     }
 
@@ -2934,7 +2814,7 @@
       const next = new Date(y, m, 1);
       teacherAppData.currentMonth = `${next.getFullYear()}-${String(next.getMonth() + 1).padStart(2, '0')}`;
       selectedHighlightStudentTeacher = null;
-      syncTeacherToCloud();
+      syncAllToCloud();
       renderTeacherApp();
     }
 
@@ -2972,7 +2852,7 @@
         btn.onclick = () => {
           teacherAppData.currentTeacherId = t.id;
           selectedHighlightStudentTeacher = null;
-          syncTeacherToCloud();
+          syncAllToCloud();
           renderTeacherApp();
         };
         tabs.appendChild(btn);
@@ -2980,10 +2860,7 @@
     }
 
     function deleteTeacherByIdTeacher(teacherId) {
-      if (teacherAppData.teachers.length <= 1) {
-        alert('系统至少需要保留一位老师！');
-        return;
-      }
+      if (teacherAppData.teachers.length <= 1) return alert('系统至少需要保留一位老师！');
       const target = teacherAppData.teachers.find(t => t.id === teacherId);
       if (!target) return;
 
@@ -3022,13 +2899,9 @@
       const pausedList = [];
 
       allStudents.forEach(st => {
-        if (st.paused) {
-          pausedList.push(st);
-        } else if (bookedSet.has(st.name)) {
-          scheduledList.push(st);
-        } else {
-          unscheduledList.push(st);
-        }
+        if (st.paused) pausedList.push(st);
+        else if (bookedSet.has(st.name)) scheduledList.push(st);
+        else unscheduledList.push(st);
       });
 
       const renderTagGroup = (list, emptyHint) => {
@@ -3068,11 +2941,7 @@
     }
 
     function toggleStudentHighlightTeacher(name) {
-      if (selectedHighlightStudentTeacher === name) {
-        selectedHighlightStudentTeacher = null;
-      } else {
-        selectedHighlightStudentTeacher = name;
-      }
+      selectedHighlightStudentTeacher = (selectedHighlightStudentTeacher === name) ? null : name;
       renderStudentCategoriesTeacher();
       renderCalendarTeacher();
     }
@@ -3257,11 +3126,8 @@
             courseEl.style.height = `${height}px`;
 
             if (selectedHighlightStudentTeacher) {
-              if (c.title === selectedHighlightStudentTeacher) {
-                courseEl.classList.add('focused-highlight');
-              } else {
-                courseEl.classList.add('dimmed-out');
-              }
+              if (c.title === selectedHighlightStudentTeacher) courseEl.classList.add('focused-highlight');
+              else courseEl.classList.add('dimmed-out');
             }
 
             courseEl.innerHTML = `
@@ -3294,19 +3160,14 @@
       if (!teacher.restDays) teacher.restDays = [];
 
       const isCurrentRest = isTeacherRestDay(teacher, dateStr, dayOfWeek);
-
       if (isCurrentRest) {
         teacher.customRestDates = teacher.customRestDates.filter(d => d !== dateStr);
         if (teacher.restDays.includes(dayOfWeek)) {
-          if (!teacher.workOverrideDates.includes(dateStr)) {
-            teacher.workOverrideDates.push(dateStr);
-          }
+          if (!teacher.workOverrideDates.includes(dateStr)) teacher.workOverrideDates.push(dateStr);
         }
       } else {
         teacher.workOverrideDates = teacher.workOverrideDates.filter(d => d !== dateStr);
-        if (!teacher.customRestDates.includes(dateStr)) {
-          teacher.customRestDates.push(dateStr);
-        }
+        if (!teacher.customRestDates.includes(dateStr)) teacher.customRestDates.push(dateStr);
       }
 
       saveDataTeacher();
@@ -3338,7 +3199,6 @@
       }
 
       const totalWorkHours = workDaysCount * TOTAL_HOURS_TEACHER;
-
       let totalBookedMinutes = 0;
       (teacher.courses || []).forEach(c => {
         if (c.date.startsWith(teacherAppData.currentMonth)) {
@@ -3601,16 +3461,10 @@
       if (id) {
         const item = teacher.courses.find(c => c.id === id);
         if (item) {
-          item.title = title;
-          item.date = date;
-          item.start = start;
-          item.end = end;
+          item.title = title; item.date = date; item.start = start; item.end = end;
         }
       } else {
-        teacher.courses.push({
-          id: 'c_' + Date.now(),
-          title, date, start, end
-        });
+        teacher.courses.push({ id: 'c_' + Date.now(), title, date, start, end });
       }
 
       saveDataTeacher();
@@ -3814,7 +3668,7 @@
             teacherAppData = parsed;
             document.getElementById('monthPickerTeacher').value = teacherAppData.currentMonth;
             selectedHighlightStudentTeacher = null;
-            await syncTeacherToCloud();
+            await syncAllToCloud();
             renderTeacherApp();
             alert('数据导入成功，并已同步至云端！');
           } else {
@@ -3837,11 +3691,10 @@
       updateUndoRedoButtonStateTeacher();
     }
 
-    // 页面启动加载：双端同时拉取云端最新数据
+    // 页面初始化：拉取云端 master 数据
     window.onload = function() {
       initMonthPicker();
-      fetchFromCloud();
-      fetchTeacherFromCloud();
+      forceSyncAllFromCloud();
     };
   </script>
 </body>
