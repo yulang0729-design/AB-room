@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ZERO日本語・日本留学 - 综合排课与管理系统 v2.2</title>
+  <title>ZERO日本語・日本留学 - 综合排课与管理系统</title>
   <!-- 引入 Supabase 官方 SDK -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
@@ -880,49 +880,32 @@
       outline: none;
     }
 
-    /* 增强型缩放栏样式 */
     .zoom-control-box {
       display: inline-flex;
       align-items: center;
       gap: 4px;
-      background: #ffffff;
-      border: 1.5px solid #6366f1;
-      padding: 3px 8px;
-      border-radius: 8px;
+      background: #fff;
+      border: 1px solid #cbd5e1;
+      padding: 2px 6px;
+      border-radius: 6px;
       margin-left: 8px;
-      box-shadow: 0 1px 3px rgba(99, 102, 241, 0.15);
-    }
-
-    .zoom-control-box span {
-      font-size: 12px;
-      font-weight: 700;
-      color: #4f46e5;
     }
 
     .zoom-control-box select {
-      border: 1px solid #cbd5e1;
-      background: #f8fafc;
+      border: none;
+      background: transparent;
       font-size: 12px;
       font-weight: 600;
-      color: #1e293b;
-      border-radius: 4px;
-      padding: 2px 4px;
+      color: #334155;
       outline: none;
       cursor: pointer;
     }
 
     .zoom-control-box button {
-      padding: 2px 8px !important;
-      font-size: 12px !important;
-      font-weight: 700 !important;
+      padding: 2px 6px !important;
+      font-size: 11px !important;
       border-radius: 4px !important;
-      border: 1px solid #cbd5e1 !important;
-      background: #f8fafc !important;
-    }
-
-    .zoom-control-box button:hover {
-      background: #e0e7ff !important;
-      border-color: #6366f1 !important;
+      border: 1px solid #e2e8f0 !important;
     }
 
     #view-teacher .stats-bar {
@@ -1434,7 +1417,7 @@
   <!-- 顶部主导航栏 -->
   <nav class="main-navigation-bar">
     <div class="main-nav-brand">
-      🌸 ZERO日本語・日本留学 系统中台 <span style="font-size:11px; opacity:0.6; font-weight:normal;">v2.2-ZoomReady</span>
+      🌸 ZERO日本語・日本留学 系统中台
     </div>
     <div class="main-nav-tabs">
       <button class="main-tab-btn active" id="btn-tab-workspace" onclick="switchMainView('workspace')">
@@ -1656,9 +1639,9 @@
           <input type="month" id="monthPickerTeacher" onchange="changeMonthTeacher(this.value)">
           <button onclick="nextMonthTeacher()">下个月 ▶</button>
           
-          <!-- 日历缩放控制器 (直观显眼) -->
+          <!-- 日历缩放控制器 -->
           <div class="zoom-control-box" title="调节教师日历视图整体比例">
-            <span>🔍 视图缩放:</span>
+            <span>🔍 视图:</span>
             <button onclick="stepZoomTeacher(-0.15)">➖</button>
             <select id="teacherZoomSelect" onchange="applyZoomTeacher(parseFloat(this.value))">
               <option value="0.75">75% (紧凑)</option>
@@ -3586,6 +3569,7 @@
         const isPub = teacherAppData.publicHolidays && teacherAppData.publicHolidays.includes(dateStr);
 
         if (batchSelectedDaysTeacher.has(dayOfWeek) && !isPub && !isTeacherRestDay(teacher, dateStr, dayOfWeek)) {
+          // 冲突排查
           (teacher.courses || []).forEach(existing => {
             if (existing.date === dateStr && isTimeOverlap(startTime, endTime, existing.start, existing.end)) {
               conflictList.push(`• 📅 ${dateStr}（已排：【${existing.title}】 ${existing.start}-${existing.end} 与 新课 ${startTime}-${endTime} 冲突）`);
@@ -3662,6 +3646,7 @@
       if (!date || !start || !end) return alert('请完整填写日期与时间');
       if (timeToMinutesTeacher(start) >= timeToMinutesTeacher(end)) return alert('开始时间必须早于结束时间');
 
+      // 冲突检测
       if (!forceProceed) {
         let conflicts = [];
         (teacher.courses || []).forEach(existing => {
@@ -3935,6 +3920,7 @@
       }
     }
 
+    // 开启 Supabase Realtime 实时双向监听
     function setupRealtimeListener() {
       if (!supabaseClient) return;
       try {
