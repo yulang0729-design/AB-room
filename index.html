@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ZERO日本語・日本留学 - 综合排课与管理系统</title>
-  <!-- 引入 Supabase 官方 SDK (用于工作台) -->
+  <!-- 引入 Supabase 官方 SDK -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     /* 全局基础重置与主导航样式 */
@@ -760,6 +760,7 @@
       display: flex;
       gap: 8px;
       flex-wrap: wrap;
+      align-items: center;
     }
 
     #view-teacher button {
@@ -794,6 +795,18 @@
 
     #view-teacher button.primary:hover {
       background-color: var(--primary-hover);
+    }
+
+    #view-teacher .sync-badge-teacher {
+      font-size: 13px;
+      background: #ecfdf5;
+      color: #059669;
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-weight: 600;
+      border: 1px solid #a7f3d0;
+      display: inline-flex;
+      align-items: center;
     }
 
     #view-teacher .control-panel {
@@ -1544,7 +1557,7 @@
   </div>
 
   <!-- =========================================================
-       页面 2: 教师月度排课看板 (原 HTML 1)
+       页面 2: 教师月度排课看板 (原 HTML 1，已接入 Supabase)
        ========================================================= -->
   <div id="view-teacher" class="page-view-container">
     <div class="container">
@@ -1554,6 +1567,7 @@
           🌸 ZERO日本語・日本留学 <span>教师月度排课看板</span>
         </div>
         <div class="btn-group">
+          <div class="sync-badge-teacher" id="sync-status-teacher">🟢 云端已连接</div>
           <button id="btnUndo" onclick="undoActionTeacher()" disabled title="撤销上一次操作">↩️ 撤销</button>
           <button id="btnRedo" onclick="redoActionTeacher()" disabled title="恢复上一步撤销的操作">↪️ 恢复</button>
           <button class="primary" onclick="openBatchModalTeacher()">⚡ 批量排课</button>
@@ -1854,12 +1868,15 @@
     }
 
     // =============================================================
-    // 模块 1: ZERO 工作台 (Supabase + A/B 教室排课) 逻辑
+    // 共享 Supabase 客户端配置
     // =============================================================
     const SUPABASE_URL = 'https://qtjqqxbyussppagddket.supabase.co';
     const SUPABASE_KEY = 'sb_publishable_1FsnKarSCrEwwpmm-Fm-mg_g3owbnp-';
-    const wsClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
+    // =============================================================
+    // 模块 1: ZERO 工作台 (Supabase + A/B 教室排课) 逻辑
+    // =============================================================
     let scheduleData = {};
     let holidays = {};
     let classes = [];
@@ -1979,14 +1996,14 @@
       const fullState = { scheduleData, holidays, classes, milestones, products, countdowns };
 
       try {
-        const { error } = await wsClient
+        const { error } = await supabaseClient
           .from('app_workspace_data')
           .upsert({ id: 'workspace_main', data: fullState, updated_at: new Date().toISOString() });
 
         if (error) throw error;
         if (badge) badge.innerText = '🟢 云端已同步';
       } catch (err) {
-        console.error('云端同步失败:', err);
+        console.error('工作台云端同步失败:', err);
         if (badge) badge.innerText = '🟡 本地已存(云端重试中)';
       }
     }
@@ -1994,7 +2011,7 @@
     async function fetchFromCloud() {
       const badge = document.getElementById('sync-status');
       try {
-        const { data, error } = await wsClient
+        const { data, error } = await supabaseClient
           .from('app_workspace_data')
           .select('data')
           .eq('id', 'workspace_main')
@@ -2027,7 +2044,7 @@
           await syncToCloud();
         }
       } catch (err) {
-        console.warn('拉取云端数据失败，回退到本地缓存:', err);
+        console.warn('拉取工作台云端数据失败，回退到本地缓存:', err);
         const localData = loadAllStorageData();
         scheduleData = localData.scheduleData;
         holidays = localData.holidays;
@@ -2767,7 +2784,7 @@
     }
 
     // =============================================================
-    // 模块 2: 教师月度排课看板逻辑
+    // 模块 2: 教师月度排课看板逻辑 (已接入 Supabase 云端同步)
     // =============================================================
     const WEEK_DAYS_TEACHER = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
     const START_HOUR_TEACHER = 9;
@@ -2808,6 +2825,50 @@
     let undoStackTeacher = [];
     let redoStackTeacher = [];
 
+    // 教师端云端同步机制
+    async function syncTeacherToCloud() {
+      const badge = document.getElementById('sync-status-teacher');
+      if (badge) badge.innerText = '🔄 同步中...';
+
+      localStorage.setItem('ZERO_TIMELINE_SCHEDULE_DATA_V10', JSON.stringify(teacherAppData));
+
+      try {
+        const { error } = await supabaseClient
+          .from('app_workspace_data')
+          .upsert({ id: 'teacher_schedule_main', data: teacherAppData, updated_at: new Date().toISOString() });
+
+        if (error) throw error;
+        if (badge) badge.innerText = '🟢 云端已同步';
+      } catch (err) {
+        console.error('教师看板云端同步失败:', err);
+        if (badge) badge.innerText = '🟡 本地已存(云端重试中)';
+      }
+    }
+
+    async function fetchTeacherFromCloud() {
+      const badge = document.getElementById('sync-status-teacher');
+      try {
+        const { data, error } = await supabaseClient
+          .from('app_workspace_data')
+          .select('data')
+          .eq('id', 'teacher_schedule_main')
+          .single();
+
+        if (data && data.data && Array.isArray(data.data.teachers)) {
+          teacherAppData = data.data;
+          localStorage.setItem('ZERO_TIMELINE_SCHEDULE_DATA_V10', JSON.stringify(teacherAppData));
+          if (badge) badge.innerText = '🟢 云端已连接';
+        } else {
+          // 云端无数据时将本地默认数据推送上去
+          await syncTeacherToCloud();
+        }
+      } catch (err) {
+        console.warn('拉取教师看板云端数据失败，使用本地缓存:', err);
+      }
+
+      renderTeacherApp();
+    }
+
     function pushHistoryTeacher() {
       undoStackTeacher.push(JSON.stringify(teacherAppData));
       if (undoStackTeacher.length > 30) undoStackTeacher.shift();
@@ -2820,7 +2881,7 @@
       redoStackTeacher.push(JSON.stringify(teacherAppData));
       const prev = undoStackTeacher.pop();
       teacherAppData = JSON.parse(prev);
-      localStorage.setItem('ZERO_TIMELINE_SCHEDULE_DATA_V10', JSON.stringify(teacherAppData));
+      syncTeacherToCloud();
       updateUndoRedoButtonStateTeacher();
       renderTeacherApp();
     }
@@ -2830,7 +2891,7 @@
       undoStackTeacher.push(JSON.stringify(teacherAppData));
       const next = redoStackTeacher.pop();
       teacherAppData = JSON.parse(next);
-      localStorage.setItem('ZERO_TIMELINE_SCHEDULE_DATA_V10', JSON.stringify(teacherAppData));
+      syncTeacherToCloud();
       updateUndoRedoButtonStateTeacher();
       renderTeacherApp();
     }
@@ -2847,7 +2908,7 @@
     }
 
     function saveDataTeacher() {
-      localStorage.setItem('ZERO_TIMELINE_SCHEDULE_DATA_V10', JSON.stringify(teacherAppData));
+      syncTeacherToCloud();
       renderStatsTeacher();
     }
 
@@ -2855,6 +2916,7 @@
       if (!val) return;
       teacherAppData.currentMonth = val;
       selectedHighlightStudentTeacher = null;
+      syncTeacherToCloud();
       renderTeacherApp();
     }
 
@@ -2863,6 +2925,7 @@
       const prev = new Date(y, m - 2, 1);
       teacherAppData.currentMonth = `${prev.getFullYear()}-${String(prev.getMonth() + 1).padStart(2, '0')}`;
       selectedHighlightStudentTeacher = null;
+      syncTeacherToCloud();
       renderTeacherApp();
     }
 
@@ -2871,6 +2934,7 @@
       const next = new Date(y, m, 1);
       teacherAppData.currentMonth = `${next.getFullYear()}-${String(next.getMonth() + 1).padStart(2, '0')}`;
       selectedHighlightStudentTeacher = null;
+      syncTeacherToCloud();
       renderTeacherApp();
     }
 
@@ -2908,6 +2972,7 @@
         btn.onclick = () => {
           teacherAppData.currentTeacherId = t.id;
           selectedHighlightStudentTeacher = null;
+          syncTeacherToCloud();
           renderTeacherApp();
         };
         tabs.appendChild(btn);
@@ -3741,7 +3806,7 @@
       const file = event.target.files[0];
       if (!file) return;
       const reader = new FileReader();
-      reader.onload = function(e) {
+      reader.onload = async function(e) {
         try {
           const parsed = JSON.parse(e.target.result);
           if (parsed.teachers && Array.isArray(parsed.teachers)) {
@@ -3749,9 +3814,9 @@
             teacherAppData = parsed;
             document.getElementById('monthPickerTeacher').value = teacherAppData.currentMonth;
             selectedHighlightStudentTeacher = null;
-            saveDataTeacher();
+            await syncTeacherToCloud();
             renderTeacherApp();
-            alert('数据导入成功！');
+            alert('数据导入成功，并已同步至云端！');
           } else {
             alert('备份文件格式不正确');
           }
@@ -3772,11 +3837,11 @@
       updateUndoRedoButtonStateTeacher();
     }
 
-    // 页面初始化
+    // 页面启动加载：双端同时拉取云端最新数据
     window.onload = function() {
       initMonthPicker();
       fetchFromCloud();
-      renderTeacherApp();
+      fetchTeacherFromCloud();
     };
   </script>
 </body>
