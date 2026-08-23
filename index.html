@@ -867,6 +867,7 @@
       display: flex;
       align-items: center;
       gap: 6px;
+      flex-wrap: wrap;
     }
 
     #view-teacher .month-nav input[type="month"] {
@@ -877,6 +878,34 @@
       font-weight: 600;
       color: #1e293b;
       outline: none;
+    }
+
+    .zoom-control-box {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      background: #fff;
+      border: 1px solid #cbd5e1;
+      padding: 2px 6px;
+      border-radius: 6px;
+      margin-left: 8px;
+    }
+
+    .zoom-control-box select {
+      border: none;
+      background: transparent;
+      font-size: 12px;
+      font-weight: 600;
+      color: #334155;
+      outline: none;
+      cursor: pointer;
+    }
+
+    .zoom-control-box button {
+      padding: 2px 6px !important;
+      font-size: 11px !important;
+      border-radius: 4px !important;
+      border: 1px solid #e2e8f0 !important;
     }
 
     #view-teacher .stats-bar {
@@ -1347,6 +1376,40 @@
       content: ' ♨';
       font-size: 10px;
     }
+
+    /* 冲突报警弹窗 */
+    .conflict-modal-card {
+      background: #fff;
+      border-radius: 10px;
+      padding: 22px;
+      width: 520px;
+      max-width: 92%;
+      box-shadow: 0 12px 30px rgba(0,0,0,0.2);
+      border-top: 5px solid #ef4444;
+    }
+
+    .conflict-alert-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: #b91c1c;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 12px;
+    }
+
+    .conflict-item-list {
+      max-height: 200px;
+      overflow-y: auto;
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+      border-radius: 6px;
+      padding: 10px;
+      font-size: 12px;
+      color: #991b1b;
+      margin-bottom: 16px;
+      line-height: 1.6;
+    }
   </style>
 </head>
 <body>
@@ -1541,7 +1604,7 @@
   </div>
 
   <!-- =========================================================
-       页面 2: 教师月度排课看板
+       页面 2: 教师月度排课看板 (增强缩放与排课冲突拦截)
        ========================================================= -->
   <div id="view-teacher" class="page-view-container">
     <div class="container">
@@ -1575,6 +1638,21 @@
           <button onclick="prevMonthTeacher()">◀ 上个月</button>
           <input type="month" id="monthPickerTeacher" onchange="changeMonthTeacher(this.value)">
           <button onclick="nextMonthTeacher()">下个月 ▶</button>
+          
+          <!-- 日历缩放控制器 -->
+          <div class="zoom-control-box" title="调节教师日历视图整体比例">
+            <span>🔍 视图:</span>
+            <button onclick="stepZoomTeacher(-0.15)">➖</button>
+            <select id="teacherZoomSelect" onchange="applyZoomTeacher(parseFloat(this.value))">
+              <option value="0.75">75% (紧凑)</option>
+              <option value="0.9">90%</option>
+              <option value="1" selected>100% (标准)</option>
+              <option value="1.15">115%</option>
+              <option value="1.25">125% (舒适)</option>
+              <option value="1.5">150% (放大)</option>
+            </select>
+            <button onclick="stepZoomTeacher(0.15)">➕</button>
+          </div>
         </div>
 
         <div class="stats-bar">
@@ -1587,7 +1665,11 @@
       </div>
 
       <div class="student-categories-panel" id="studentCategoriesPanel"></div>
-      <div class="table-container" id="calendarContainerTeacher"></div>
+      
+      <!-- 支持缩放的日历外壳 -->
+      <div class="table-container" id="calendarContainerTeacherWrapper">
+        <div id="calendarContainerTeacher" style="transform-origin: top left; transition: transform 0.2s ease;"></div>
+      </div>
     </div>
 
     <!-- 批量排课弹窗 -->
@@ -1707,7 +1789,7 @@
 
         <div class="modal-footer">
           <button onclick="closeModalTeacher('addCourseModalTeacher')">取消</button>
-          <button class="primary" onclick="saveSingleCourseTeacher()">保存排课</button>
+          <button class="primary" onclick="saveSingleCourseTeacher(false)">保存排课</button>
         </div>
       </div>
     </div>
@@ -1826,6 +1908,23 @@
         </div>
       </div>
     </div>
+
+    <!-- 教师排课冲突报警弹窗 -->
+    <div class="modal" id="conflictAlertModalTeacher">
+      <div class="conflict-modal-card">
+        <div class="conflict-alert-title">
+          <span>⚠️ 排课时间冲突提醒</span>
+        </div>
+        <p style="font-size:13px; color:#475569; margin-bottom:10px;">
+          系统检测到本次排课与当前教师已有的排课时间存在重叠，请确认是否协调调整：
+        </p>
+        <div class="conflict-item-list" id="conflictItemListTeacher"></div>
+        <div class="modal-footer" style="margin-top:0;">
+          <button onclick="closeModalTeacher('conflictAlertModalTeacher')" style="background:#f1f5f9; font-weight:600;">🛠️ 返回去调整</button>
+          <button class="primary" id="btnForceProceedConflict" style="background:#dc2626; border-color:#dc2626;">⚠️ 依旧排课 (强行保存)</button>
+        </div>
+      </div>
+    </div>
   </div>
 
   <script>
@@ -1877,7 +1976,7 @@
     let activeDateKey = null;
     let previousScheduleBackup = null;
 
-    // 教师看板常量与状态 (唯一定义)
+    // 教师看板常量与状态
     const WEEK_DAYS_TEACHER = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
     const START_HOUR_TEACHER = 9;
     const END_HOUR_TEACHER = 18;
@@ -1887,6 +1986,8 @@
       "#fef08a", "#f3e8ff", "#fce7f3", "#dcfce7", "#e0e7ff",
       "#ffedd5", "#cffafe", "#fee2e2", "#f1f5f9", "#fae8ff"
     ];
+
+    let teacherZoomScale = 1.0;
 
     let teacherAppData = {
       currentTeacherId: "1",
@@ -1925,7 +2026,6 @@
       } catch(e) {}
     }
 
-    // 从本地 Storage 读取备用数据
     function loadLocalCache() {
       try {
         let rawTeacher = localStorage.getItem('ZERO_TIMELINE_SCHEDULE_DATA_V10');
@@ -2008,7 +2108,6 @@
       countdowns = combinedCountdowns;
     }
 
-    // 全局统一云端同步（写入）
     async function syncAllToCloud() {
       updateSyncBadges('🔄 同步中...');
 
@@ -2050,7 +2149,6 @@
       }
     }
 
-    // 全局统一云端拉取（读取）
     async function forceSyncAllFromCloud() {
       updateSyncBadges('🔄 正在同步...');
 
@@ -2793,8 +2891,25 @@
     }
 
     // =============================================================
-    // 教师看板功能函数
+    // 教师看板功能函数与缩放调节
     // =============================================================
+    function applyZoomTeacher(scale) {
+      teacherZoomScale = Math.max(0.6, Math.min(2.0, scale));
+      const targetEl = document.getElementById('calendarContainerTeacher');
+      const selectEl = document.getElementById('teacherZoomSelect');
+      if (targetEl) {
+        targetEl.style.transform = `scale(${teacherZoomScale})`;
+        targetEl.style.width = `${100 / teacherZoomScale}%`;
+      }
+      if (selectEl) {
+        selectEl.value = teacherZoomScale.toString();
+      }
+    }
+
+    function stepZoomTeacher(delta) {
+      applyZoomTeacher(Math.round((teacherZoomScale + delta) * 100) / 100);
+    }
+
     function pushHistoryTeacher() {
       undoStackTeacher.push(JSON.stringify(teacherAppData));
       if (undoStackTeacher.length > 30) undoStackTeacher.shift();
@@ -3035,6 +3150,15 @@
       return teacher.restDays.includes(dayOfWeek);
     }
 
+    // 教师时间段冲突检查器 (判断两个时段是否有交集)
+    function isTimeOverlap(s1, e1, s2, e2) {
+      const startA = timeToMinutesTeacher(s1);
+      const endA = timeToMinutesTeacher(e1);
+      const startB = timeToMinutesTeacher(s2);
+      const endB = timeToMinutesTeacher(e2);
+      return Math.max(startA, startB) < Math.min(endA, endB);
+    }
+
     function renderCalendarTeacher() {
       const container = document.getElementById('calendarContainerTeacher');
       if (!container) return;
@@ -3196,6 +3320,7 @@
 
       table.appendChild(tbody);
       container.appendChild(table);
+      applyZoomTeacher(teacherZoomScale);
     }
 
     function toggleSingleDayRestTeacher(dateStr, dayOfWeek) {
@@ -3419,7 +3544,7 @@
       });
     }
 
-    function applyBatchRuleBookingTeacher() {
+    function applyBatchRuleBookingTeacher(forceProceed = false) {
       const title = document.getElementById('batchStudentSelectTeacher').value;
       const startDateStr = document.getElementById('batchStartDateTeacher').value;
       const startTime = document.getElementById('batchStartTimeTeacher').value;
@@ -3431,12 +3556,11 @@
       if (!startDateStr) return alert('请选择开课起始日期');
       if (batchSelectedDaysTeacher.size === 0) return alert('请至少选择一个规律上课日');
 
-      pushHistoryTeacher();
-      if (!teacher.courses) teacher.courses = [];
-
       let scheduled = 0;
       let curr = new Date(startDateStr);
       let safety = 0;
+      let conflictList = [];
+      let newBatchCourses = [];
 
       while (scheduled < count && safety < 365) {
         safety++;
@@ -3445,7 +3569,14 @@
         const isPub = teacherAppData.publicHolidays && teacherAppData.publicHolidays.includes(dateStr);
 
         if (batchSelectedDaysTeacher.has(dayOfWeek) && !isPub && !isTeacherRestDay(teacher, dateStr, dayOfWeek)) {
-          teacher.courses.push({
+          // 冲突排查
+          (teacher.courses || []).forEach(existing => {
+            if (existing.date === dateStr && isTimeOverlap(startTime, endTime, existing.start, existing.end)) {
+              conflictList.push(`• 📅 ${dateStr}（已排：【${existing.title}】 ${existing.start}-${existing.end} 与 新课 ${startTime}-${endTime} 冲突）`);
+            }
+          });
+
+          newBatchCourses.push({
             id: 'c_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
             date: dateStr,
             start: startTime,
@@ -3457,10 +3588,22 @@
         curr.setDate(curr.getDate() + 1);
       }
 
+      if (!forceProceed && conflictList.length > 0) {
+        showConflictModalTeacher(conflictList, () => {
+          applyBatchRuleBookingTeacher(true);
+        });
+        return;
+      }
+
+      pushHistoryTeacher();
+      if (!teacher.courses) teacher.courses = [];
+      teacher.courses.push(...newBatchCourses);
+
       saveDataTeacher();
       renderTeacherApp();
       closeModalTeacher('batchModalTeacher');
-      alert(`🎉 批量排课成功！已顺延跳过公休日与休息日，共生成 ${scheduled} 节课程。`);
+      closeModalTeacher('conflictAlertModalTeacher');
+      alert(`🎉 批量排课成功！共生成 ${scheduled} 节课程。`);
     }
 
     function openAddCourseModalTeacher(presetDate = '') {
@@ -3491,7 +3634,7 @@
       document.getElementById('addCourseModalTeacher').style.display = 'flex';
     }
 
-    function saveSingleCourseTeacher() {
+    function saveSingleCourseTeacher(forceProceed = false) {
       const id = document.getElementById('editCourseIdTeacher').value;
       const title = document.getElementById('courseStudentSelectTeacher').value;
       const date = document.getElementById('courseDateTeacher').value;
@@ -3502,6 +3645,23 @@
       if (!title) return alert('请选择学员');
       if (!date || !start || !end) return alert('请完整填写日期与时间');
       if (timeToMinutesTeacher(start) >= timeToMinutesTeacher(end)) return alert('开始时间必须早于结束时间');
+
+      // 冲突检测
+      if (!forceProceed) {
+        let conflicts = [];
+        (teacher.courses || []).forEach(existing => {
+          if (existing.id !== id && existing.date === date && isTimeOverlap(start, end, existing.start, existing.end)) {
+            conflicts.push(`• 📅 ${date}（已排：【${existing.title}】 ${existing.start}-${existing.end} 与 新课 ${start}-${end} 发生时间重叠）`);
+          }
+        });
+
+        if (conflicts.length > 0) {
+          showConflictModalTeacher(conflicts, () => {
+            saveSingleCourseTeacher(true);
+          });
+          return;
+        }
+      }
 
       pushHistoryTeacher();
       if (!teacher.courses) teacher.courses = [];
@@ -3518,6 +3678,17 @@
       saveDataTeacher();
       renderTeacherApp();
       closeModalTeacher('addCourseModalTeacher');
+      closeModalTeacher('conflictAlertModalTeacher');
+    }
+
+    function showConflictModalTeacher(conflicts, onForceCallback) {
+      const listEl = document.getElementById('conflictItemListTeacher');
+      const forceBtn = document.getElementById('btnForceProceedConflict');
+      if (!listEl || !forceBtn) return;
+
+      listEl.innerHTML = conflicts.join('<br>');
+      forceBtn.onclick = onForceCallback;
+      document.getElementById('conflictAlertModalTeacher').style.display = 'flex';
     }
 
     function deleteCurrentCourseTeacher() {
@@ -3704,7 +3875,6 @@
       a.remove();
     }
 
-    // 智能识别导入数据格式（无论是旧教师看板备份，还是工作台全量备份）
     function importDataTeacher(event) {
       const file = event.target.files[0];
       if (!file) return;
@@ -3725,10 +3895,9 @@
           document.getElementById('monthPickerTeacher').value = teacherAppData.currentMonth || "2026-08";
           selectedHighlightStudentTeacher = null;
           
-          // 导入后立即强制同步全量数据到 Supabase
           await syncAllToCloud();
           renderTeacherApp();
-          alert('🎉 教师数据导入成功！已强制推送到云端并向所有在线设备同步。');
+          alert('🎉 教师数据导入成功！已同步至云端。');
         } catch (err) {
           alert('解析失败，请检查备份文件');
         }
@@ -3751,7 +3920,7 @@
       }
     }
 
-    // 开启 Supabase Realtime 实时双向监听 (加装安全防护)
+    // 开启 Supabase Realtime 实时双向监听
     function setupRealtimeListener() {
       if (!supabaseClient) return;
       try {
@@ -3778,16 +3947,14 @@
           })
           .subscribe();
       } catch(e) {
-        console.warn("Realtime not available, falling back to focus sync:", e);
+        console.warn("Realtime listener error:", e);
       }
     }
 
-    // 页面切回前台自动与云端核对（解决 Safari 休眠唤醒同步）
     window.addEventListener('focus', () => {
       forceSyncAllFromCloud();
     });
 
-    // 页面启动加载
     window.addEventListener('DOMContentLoaded', () => {
       loadLocalCache();
       initMonthPicker();
