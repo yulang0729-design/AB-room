@@ -30,6 +30,15 @@
       position: sticky;
       top: 0;
       z-index: 9999;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .main-nav-left {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
     }
 
     .main-nav-brand {
@@ -50,10 +59,10 @@
       background: #334155;
       color: #cbd5e1;
       border: 1px solid #475569;
-      padding: 8px 18px;
+      padding: 7px 16px;
       border-radius: 8px;
       cursor: pointer;
-      font-size: 14px;
+      font-size: 13px;
       font-weight: 600;
       display: inline-flex;
       align-items: center;
@@ -73,12 +82,67 @@
       box-shadow: 0 2px 6px rgba(230, 126, 34, 0.35);
     }
 
+    /* 权限控制顶栏按钮 */
+    .auth-control-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .auth-badge {
+      font-size: 12px;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 20px;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .auth-badge.viewer {
+      background: #f1f5f9;
+      color: #64748b;
+      border: 1px solid #cbd5e1;
+    }
+
+    .auth-badge.admin {
+      background: #dcfce7;
+      color: #15803d;
+      border: 1px solid #86efac;
+    }
+
+    .btn-auth-action {
+      background: #475569;
+      color: #fff;
+      border: none;
+      padding: 5px 12px;
+      border-radius: 6px;
+      font-size: 12px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: background 0.2s;
+    }
+
+    .btn-auth-action:hover {
+      background: #64748b;
+    }
+
     .page-view-container {
       display: none;
     }
 
     .page-view-container.active-view {
       display: block;
+    }
+
+    /* 只读模式下对可写操作的全局受控样式 */
+    body.is-viewer-mode .admin-only-feature {
+      display: none !important;
+    }
+
+    body.is-viewer-mode .admin-only-clickable {
+      pointer-events: none !important;
+      cursor: default !important;
     }
 
     /* =========================================================
@@ -884,28 +948,44 @@
       display: inline-flex;
       align-items: center;
       gap: 4px;
-      background: #fff;
-      border: 1px solid #cbd5e1;
-      padding: 2px 6px;
-      border-radius: 6px;
+      background: #ffffff;
+      border: 1.5px solid #6366f1;
+      padding: 3px 8px;
+      border-radius: 8px;
       margin-left: 8px;
+      box-shadow: 0 1px 3px rgba(99, 102, 241, 0.15);
+    }
+
+    .zoom-control-box span {
+      font-size: 12px;
+      font-weight: 700;
+      color: #4f46e5;
     }
 
     .zoom-control-box select {
-      border: none;
-      background: transparent;
+      border: 1px solid #cbd5e1;
+      background: #f8fafc;
       font-size: 12px;
       font-weight: 600;
-      color: #334155;
+      color: #1e293b;
+      border-radius: 4px;
+      padding: 2px 4px;
       outline: none;
       cursor: pointer;
     }
 
     .zoom-control-box button {
-      padding: 2px 6px !important;
-      font-size: 11px !important;
+      padding: 2px 8px !important;
+      font-size: 12px !important;
+      font-weight: 700 !important;
       border-radius: 4px !important;
-      border: 1px solid #e2e8f0 !important;
+      border: 1px solid #cbd5e1 !important;
+      background: #f8fafc !important;
+    }
+
+    .zoom-control-box button:hover {
+      background: #e0e7ff !important;
+      border-color: #6366f1 !important;
     }
 
     #view-teacher .stats-bar {
@@ -1412,20 +1492,29 @@
     }
   </style>
 </head>
-<body>
+<body class="is-viewer-mode">
 
   <!-- 顶部主导航栏 -->
   <nav class="main-navigation-bar">
-    <div class="main-nav-brand">
-      🌸 ZERO日本語・日本留学 系统中台
+    <div class="main-nav-left">
+      <div class="main-nav-brand">
+        🌸 ZERO日本語・日本留学 系统中台
+      </div>
+      <div class="main-nav-tabs">
+        <button class="main-tab-btn active" id="btn-tab-workspace" onclick="switchMainView('workspace')">
+          🖥️ 综合管理工作台
+        </button>
+        <button class="main-tab-btn" id="btn-tab-teacher" onclick="switchMainView('teacher')">
+          📅 教师月度排课看板
+        </button>
+      </div>
     </div>
-    <div class="main-nav-tabs">
-      <button class="main-tab-btn active" id="btn-tab-workspace" onclick="switchMainView('workspace')">
-        🖥️ 综合管理工作台
-      </button>
-      <button class="main-tab-btn" id="btn-tab-teacher" onclick="switchMainView('teacher')">
-        📅 教师月度排课看板
-      </button>
+
+    <!-- 权限状态与口令解锁 -->
+    <div class="auth-control-group">
+      <div class="auth-badge viewer" id="authBadge">👁️ 只读模式</div>
+      <button class="btn-auth-action" id="btnAuthToggle" onclick="handleAuthAction()">🔐 解锁编辑权限</button>
+      <button class="btn-auth-action admin-only-feature" onclick="openChangePasswordModal()" style="background:#0284c7;">🔑 修改管理密码</button>
     </div>
   </nav>
 
@@ -1439,9 +1528,9 @@
         <div class="header-right">
           <div class="global-sync-badge" id="sync-status">🟢 云端已连接</div>
           <button class="btn-backup" onclick="forceSyncAllFromCloud()">🔄 刷新云端数据</button>
-          <button class="btn-rescue" onclick="deepScanAndRescue()">🚨 深度扫描并恢复所有历史数据</button>
+          <button class="btn-rescue admin-only-feature" onclick="deepScanAndRescue()">🚨 深度扫描并恢复所有历史数据</button>
           <button class="btn-backup" onclick="exportDataBackup()">📦 导出备份</button>
-          <button class="btn-backup" onclick="document.getElementById('import-file-input').click()">📥 导入备份</button>
+          <button class="btn-backup admin-only-feature" onclick="document.getElementById('import-file-input').click()">📥 导入备份</button>
           <input type="file" id="import-file-input" style="display:none;" accept=".json" onchange="importDataBackup(event)">
           <div class="timezone-badge" id="bj-time">北京时间：--:--:--</div>
         </div>
@@ -1452,7 +1541,7 @@
         <!-- 板块 1：倒计时 -->
         <div class="card">
           <div class="card-title">🌟 重要时间节点倒计时</div>
-          <div class="countdown-form">
+          <div class="countdown-form admin-only-feature">
             <input type="text" id="new-countdown-name" placeholder="事件名称（例：JLPT 报名/考试/查成绩）" style="width: 260px;">
             <input type="datetime-local" id="new-countdown-time" style="width: 220px;">
             <button onclick="addCountdown()">+ 添加倒计时</button>
@@ -1464,7 +1553,7 @@
         <div class="card">
           <div class="card-title">🌟 全月日历网格排课</div>
 
-          <div class="panel-box" style="background: #f0fdf4; border-color: #86efac;">
+          <div class="panel-box admin-only-feature" style="background: #f0fdf4; border-color: #86efac;">
             <div class="panel-row">
               <label>🎨 1. 创建班级与设定专属颜色：</label>
               <input type="text" id="class-name" placeholder="班级名称（例：N2冲刺班）" style="width: 200px;">
@@ -1475,7 +1564,7 @@
             <div class="tag-list" id="class-tags"></div>
           </div>
 
-          <div class="panel-box" style="background: #eff6ff; border-color: #93c5fd;">
+          <div class="panel-box admin-only-feature" style="background: #eff6ff; border-color: #93c5fd;">
             <div class="panel-row">
               <label>🚩 2. 标注班级里程碑节点：</label>
               <select id="milestone-class-select" style="font-weight: 600; min-width: 150px;"></select>
@@ -1489,7 +1578,7 @@
             </div>
           </div>
 
-          <div class="panel-box" style="background: #fff5f5; border-color: #feb2b2;">
+          <div class="panel-box admin-only-feature" style="background: #fff5f5; border-color: #feb2b2;">
             <div class="panel-row">
               <label>🎉 3. 设置不排课节假日：</label>
               <input type="date" id="holiday-start">
@@ -1501,7 +1590,7 @@
             <div class="tag-list" id="holiday-tags"></div>
           </div>
 
-          <div class="panel-box">
+          <div class="panel-box admin-only-feature">
             <div class="panel-row" style="margin-bottom: 10px;">
               <label>⚡️ 4. 批量排课 / 调整某班排课时间与次数：</label>
               <select id="batch-class-select" style="font-weight: 600; color: var(--primary-orange); min-width: 160px;"></select>
@@ -1567,7 +1656,7 @@
 
         <div class="card">
           <div class="card-title">🌟 学校课程商品管理</div>
-          <div class="product-form">
+          <div class="product-form admin-only-feature">
             <input type="text" id="prod-name" placeholder="课程商品名称（例：N2全科备考班）" style="width: 260px;">
             <input type="number" id="prod-price" placeholder="价格 (元)" style="width: 140px;">
             <button onclick="addProduct()">添加课程商品</button>
@@ -1615,17 +1704,17 @@
         <div class="btn-group">
           <div class="global-sync-badge" id="sync-status-teacher">🟢 云端已连接</div>
           <button onclick="forceSyncAllFromCloud()">🔄 刷新云端数据</button>
-          <button id="btnUndo" onclick="undoActionTeacher()" disabled title="撤销上一次操作">↩️ 撤销</button>
-          <button id="btnRedo" onclick="redoActionTeacher()" disabled title="恢复上一步撤销的操作">↪️ 恢复</button>
-          <button class="primary" onclick="openBatchModalTeacher()">⚡ 批量排课</button>
-          <button onclick="openAddCourseModalTeacher()">+ 单独排课</button>
-          <button onclick="openStudentManagerModalTeacher()">👥 学员标识与管理</button>
-          <button onclick="openPublicHolidayModalTeacher()">🎌 机构公休日</button>
-          <button onclick="openEditRestModalTeacher()">⚙️ 教师休息日 (日历多选)</button>
-          <button onclick="openAddTeacherModalTeacher()">+ 添加老师</button>
-          <button onclick="deleteCurrentTeacherBtnTeacher()" style="color:#dc2626; border-color:#fca5a5;" title="删除当前正在查看的老师">🗑️ 删除当前老师</button>
+          <button id="btnUndo" class="admin-only-feature" onclick="undoActionTeacher()" disabled title="撤销上一次操作">↩️ 撤销</button>
+          <button id="btnRedo" class="admin-only-feature" onclick="redoActionTeacher()" disabled title="恢复上一步撤销的操作">↪️ 恢复</button>
+          <button class="primary admin-only-feature" onclick="openBatchModalTeacher()">⚡ 批量排课</button>
+          <button class="admin-only-feature" onclick="openAddCourseModalTeacher()">+ 单独排课</button>
+          <button class="admin-only-feature" onclick="openStudentManagerModalTeacher()">👥 学员标识与管理</button>
+          <button class="admin-only-feature" onclick="openPublicHolidayModalTeacher()">🎌 机构公休日</button>
+          <button class="admin-only-feature" onclick="openEditRestModalTeacher()">⚙️ 教师休息日 (日历多选)</button>
+          <button class="admin-only-feature" onclick="openAddTeacherModalTeacher()">+ 添加老师</button>
+          <button class="admin-only-feature" onclick="deleteCurrentTeacherBtnTeacher()" style="color:#dc2626; border-color:#fca5a5;" title="删除当前正在查看的老师">🗑️ 删除当前老师</button>
           <button onclick="exportDataTeacher()">💾 备份数据</button>
-          <button onclick="document.getElementById('importFileTeacher').click()">📂 导入备份</button>
+          <button class="admin-only-feature" onclick="document.getElementById('importFileTeacher').click()">📂 导入备份</button>
           <input type="file" id="importFileTeacher" style="display:none" onchange="importDataTeacher(event)">
         </div>
       </div>
@@ -1641,7 +1730,7 @@
           
           <!-- 日历缩放控制器 -->
           <div class="zoom-control-box" title="调节教师日历视图整体比例">
-            <span>🔍 视图:</span>
+            <span>🔍 视图缩放:</span>
             <button onclick="stepZoomTeacher(-0.15)">➖</button>
             <select id="teacherZoomSelect" onchange="applyZoomTeacher(parseFloat(this.value))">
               <option value="0.75">75% (紧凑)</option>
@@ -1965,6 +2054,11 @@
       console.warn("Supabase init warning:", e);
     }
 
+    // 权限与密码体系配置
+    const SUPER_MASTER_KEY = "Wyl19980729"; // 超级修改密钥
+    let currentAdminPassword = "yulang0729"; // 初始总控管理密码
+    let isUserAdmin = false;
+
     // 工作台状态
     let scheduleData = {};
     let holidays = {};
@@ -2016,6 +2110,87 @@
     let selectedHighlightStudentTeacher = null;
     let undoStackTeacher = [];
     let redoStackTeacher = [];
+
+    // -------------------------------------------------------------
+    // 权限校验与界面响应
+    // -------------------------------------------------------------
+    function updateAuthUI() {
+      const badge = document.getElementById('authBadge');
+      const toggleBtn = document.getElementById('btnAuthToggle');
+      
+      if (isUserAdmin) {
+        document.body.classList.remove('is-viewer-mode');
+        if (badge) {
+          badge.className = 'auth-badge admin';
+          badge.innerText = '👑 管理员 (可编辑)';
+        }
+        if (toggleBtn) {
+          toggleBtn.innerText = '🔒 锁定只读';
+          toggleBtn.style.background = '#e11d48';
+        }
+      } else {
+        document.body.classList.add('is-viewer-mode');
+        if (badge) {
+          badge.className = 'auth-badge viewer';
+          badge.innerText = '👁️ 只读模式';
+        }
+        if (toggleBtn) {
+          toggleBtn.innerText = '🔐 解锁编辑权限';
+          toggleBtn.style.background = '#475569';
+        }
+      }
+    }
+
+    function handleAuthAction() {
+      if (isUserAdmin) {
+        if (confirm("确定要退出管理员模式并切换回只读状态吗？")) {
+          isUserAdmin = false;
+          localStorage.removeItem('ZERO_AUTH_TOKEN_ACTIVE');
+          updateAuthUI();
+          renderCalendars();
+          renderTeacherApp();
+        }
+      } else {
+        const inputPwd = prompt("请输入总控管理密码以解锁排课编辑权限：");
+        if (inputPwd === null) return;
+        if (inputPwd === currentAdminPassword) {
+          isUserAdmin = true;
+          localStorage.setItem('ZERO_AUTH_TOKEN_ACTIVE', 'true');
+          updateAuthUI();
+          renderCalendars();
+          renderTeacherApp();
+          alert("🎉 管理员身份验证成功！现在可以自由排课与编辑。");
+        } else {
+          alert("❌ 密码错误，无法获得编辑权限！");
+        }
+      }
+    }
+
+    function openChangePasswordModal() {
+      if (!isUserAdmin) return alert("只有管理员才可以修改管理密码！");
+      const superKeyInput = prompt("【安全验证】请输入超级管理密钥：");
+      if (superKeyInput === null) return;
+      if (superKeyInput !== SUPER_MASTER_KEY) {
+        return alert("❌ 超级管理密钥错误，拒绝修改！");
+      }
+
+      const newPwd = prompt("请输入新的总控管理密码（日常编辑解锁使用）：");
+      if (!newPwd || !newPwd.trim()) return alert("密码不能为空！");
+
+      currentAdminPassword = newPwd.trim();
+      syncAllToCloud();
+      alert(`🎉 管理密码修改成功！新密码为：【${currentAdminPassword}】，已同步至云端。`);
+    }
+
+    function initAuthStatus() {
+      const savedAuth = localStorage.getItem('ZERO_AUTH_TOKEN_ACTIVE');
+      if (savedAuth === 'true') {
+        isUserAdmin = true;
+      } else {
+        isUserAdmin = false;
+      }
+      updateAuthUI();
+    }
 
     function updateSyncBadges(statusText) {
       try {
@@ -2109,6 +2284,8 @@
     }
 
     async function syncAllToCloud() {
+      if (!isUserAdmin) return; // 只读模式禁止写入云端
+
       updateSyncBadges('🔄 同步中...');
 
       try {
@@ -2133,7 +2310,8 @@
         milestones,
         products,
         countdowns,
-        teacherAppData
+        teacherAppData,
+        currentAdminPassword
       };
 
       try {
@@ -2176,6 +2354,10 @@
           products = d.products || [];
           countdowns = d.countdowns || [];
 
+          if (d.currentAdminPassword) {
+            currentAdminPassword = d.currentAdminPassword;
+          }
+
           if (d.teacherAppData && Array.isArray(d.teacherAppData.teachers)) {
             teacherAppData = d.teacherAppData;
           }
@@ -2193,7 +2375,7 @@
           updateSyncBadges('🟢 云端已连接');
         } else {
           loadLocalCache();
-          await syncAllToCloud();
+          if (isUserAdmin) await syncAllToCloud();
         }
       } catch (err) {
         console.warn('云端拉取回退至本地缓存:', err);
@@ -2221,6 +2403,7 @@
     }
 
     function deepScanAndRescue() {
+      if (!isUserAdmin) return alert("只读模式下不可执行恢复操作！");
       loadLocalCache();
       syncAllToCloud();
 
@@ -2276,6 +2459,7 @@
     }
 
     function importDataBackup(event) {
+      if (!isUserAdmin) return alert("只有管理员才可以导入备份数据！");
       const file = event.target.files[0];
       if (!file) return;
 
@@ -2319,6 +2503,7 @@
     updateBJTime();
 
     function addCountdown() {
+      if (!isUserAdmin) return alert("只读模式下不可添加倒计时！");
       const nameInput = document.getElementById('new-countdown-name');
       const timeInput = document.getElementById('new-countdown-time');
       const name = nameInput.value.trim();
@@ -2334,6 +2519,7 @@
     }
 
     function deleteCountdown(id) {
+      if (!isUserAdmin) return alert("只读模式下不可删除！");
       countdowns = countdowns.filter(c => c.id !== id);
       syncAllToCloud();
       renderCountdowns();
@@ -2353,7 +2539,7 @@
         card.innerHTML = `
           <div class="countdown-header">
             <h3 title="${c.name}">${c.name}</h3>
-            <button class="countdown-del-btn" title="删除此倒计时" onclick="deleteCountdown(${c.id})">✕</button>
+            ${isUserAdmin ? `<button class="countdown-del-btn" title="删除此倒计时" onclick="deleteCountdown(${c.id})">✕</button>` : ''}
           </div>
           <div class="countdown-target-time">目标时间: ${c.targetTime.replace('T', ' ')}</div>
           <div class="timer-display" id="timer-display-${c.id}">计算中...</div>
@@ -2384,6 +2570,7 @@
     setInterval(updateAllTimers, 1000);
 
     function addClass() {
+      if (!isUserAdmin) return alert("只读模式下不可操作！");
       const name = document.getElementById('class-name').value.trim();
       const color = document.getElementById('class-color').value;
       if (!name) return alert('请输入班级名称！');
@@ -2396,6 +2583,7 @@
     }
 
     function deleteClass(index) {
+      if (!isUserAdmin) return alert("只读模式下不可操作！");
       let targetName = classes[index].name;
       if(confirm(`确定删除班级“${targetName}”吗？\n（注：删除班级不会自动清空课表，如需清空排课请点击“清空排课”）`)){
         classes.splice(index, 1);
@@ -2406,6 +2594,7 @@
     }
 
     function clearAllScheduleForClass(className) {
+      if (!isUserAdmin) return alert("只读模式下不可操作！");
       if (!confirm(`⚠️ 确定要清空【${className}】在 A/B 教室的所有排课吗？`)) return;
 
       previousScheduleBackup = JSON.parse(JSON.stringify(scheduleData));
@@ -2447,8 +2636,10 @@
         
         tag.innerHTML = `
           <span>${c.name}</span>
-          <span class="class-action-btn" title="一键清空该班级所有排课" onclick="clearAllScheduleForClass('${c.name}')">🗑️ 清空排课</span>
-          <span class="class-action-btn" title="删除班级" onclick="deleteClass(${index})">✕</span>
+          ${isUserAdmin ? `
+            <span class="class-action-btn" title="一键清空该班级所有排课" onclick="clearAllScheduleForClass('${c.name}')">🗑️ 清空排课</span>
+            <span class="class-action-btn" title="删除班级" onclick="deleteClass(${index})">✕</span>
+          ` : ''}
         `;
         container.appendChild(tag);
 
@@ -2470,6 +2661,7 @@
     }
 
     function addMilestone() {
+      if (!isUserAdmin) return alert("只读模式下不可操作！");
       const className = document.getElementById('milestone-class-select').value;
       const type = document.getElementById('milestone-type-select').value;
       const dateKey = document.getElementById('milestone-date').value;
@@ -2484,6 +2676,7 @@
     }
 
     function deleteMilestone(id) {
+      if (!isUserAdmin) return alert("只读模式下不可操作！");
       milestones = milestones.filter(m => m.id !== id);
       syncAllToCloud();
       renderMilestones();
@@ -2511,7 +2704,7 @@
           </div>
           <div style="display:flex; align-items:center;">
             <span class="milestone-tag-badge badge-${m.type}">${m.type}</span>
-            <span class="milestone-del-btn" title="删除节点" onclick="deleteMilestone(${m.id})">✕</span>
+            ${isUserAdmin ? `<span class="milestone-del-btn" title="删除节点" onclick="deleteMilestone(${m.id})">✕</span>` : ''}
           </div>
         `;
         container.appendChild(card);
@@ -2519,6 +2712,7 @@
     }
 
     function addHoliday() {
+      if (!isUserAdmin) return alert("只读模式下不可操作！");
       const startStr = document.getElementById('holiday-start').value;
       const endStr = document.getElementById('holiday-end').value || startStr;
       const name = document.getElementById('holiday-name').value.trim() || '休假';
@@ -2539,6 +2733,7 @@
     }
 
     function deleteHoliday(dateKey) {
+      if (!isUserAdmin) return alert("只读模式下不可操作！");
       delete holidays[dateKey];
       syncAllToCloud();
       renderHolidays();
@@ -2552,12 +2747,13 @@
       Object.keys(holidays).sort().forEach(dateKey => {
         let tag = document.createElement('div');
         tag.className = 'tag-item';
-        tag.innerHTML = `${dateKey} (${holidays[dateKey]}) <span onclick="deleteHoliday('${dateKey}')">✕</span>`;
+        tag.innerHTML = `${dateKey} (${holidays[dateKey]}) ${isUserAdmin ? `<span onclick="deleteHoliday('${dateKey}')">✕</span>` : ''}`;
         container.appendChild(tag);
       });
     }
 
     function batchBookWeekly(isOverwrite = false) {
+      if (!isUserAdmin) return alert("只读模式下不可操作！");
       const className = document.getElementById('batch-class-select').value;
       const startStr = document.getElementById('batch-start').value;
       const period = document.getElementById('batch-period').value;
@@ -2631,6 +2827,7 @@
     }
 
     function undoLastBatch() {
+      if (!isUserAdmin) return;
       if (!previousScheduleBackup) return;
       if (confirm('确认要撤销上一次的操作吗？课表将恢复到操作前。')) {
         scheduleData = JSON.parse(JSON.stringify(previousScheduleBackup));
@@ -2780,7 +2977,7 @@
 
                   let titleText = isOccupied ? `${p}: ${className}` : `${p}: 空闲`;
                   html += `<div class="period-slot ${isOccupied ? 'occupied' : ''}" ${customStyle}
-                               onclick="openModalWs('${slotKey}', '${className}', '${item.dateKey}', '教室 ${room} | ${item.dateKey} ${p}')">
+                               onclick="${isUserAdmin ? `openModalWs('${slotKey}', '${className}', '${item.dateKey}', '教室 ${room} | ${item.dateKey} ${p}')` : `alert('只读模式下不可直接排课，请先在右上角解锁管理员权限！')`}">
                             <span style="overflow:hidden; text-overflow:ellipsis;">${titleText}</span>
                             ${badgeHtml}
                            </div>`;
@@ -2799,6 +2996,7 @@
     }
 
     function openModalWs(key, className, dateKey, title) {
+      if (!isUserAdmin) return;
       activeCellKey = key;
       activeDateKey = dateKey;
       document.getElementById('modal-time-title').innerText = title;
@@ -2815,6 +3013,7 @@
     }
 
     function quickMarkMilestone(type) {
+      if (!isUserAdmin) return;
       const className = document.getElementById('modal-class-select').value;
       if (!className) return alert('请先为此时段选择一个班级！');
       milestones.push({ id: Date.now(), className, type, dateKey: activeDateKey });
@@ -2826,6 +3025,7 @@
     }
 
     function saveSingleSlot() {
+      if (!isUserAdmin) return;
       const className = document.getElementById('modal-class-select').value;
       let oldClass = scheduleData[activeCellKey];
 
@@ -2843,6 +3043,7 @@
     }
 
     function clearSingleSlot() {
+      if (!isUserAdmin) return;
       delete scheduleData[activeCellKey];
       syncAllToCloud();
       closeModalWs();
@@ -2862,13 +3063,14 @@
             <div class="product-name">${prod.name}</div>
             <div class="product-price">¥ ${prod.price}</div>
           </div>
-          <button class="delete-btn" onclick="deleteProduct(${index})">删除</button>
+          ${isUserAdmin ? `<button class="delete-btn" onclick="deleteProduct(${index})">删除</button>` : ''}
         `;
         container.appendChild(card);
       });
     }
 
     function addProduct() {
+      if (!isUserAdmin) return alert("只读模式下不可操作！");
       const nameInput = document.getElementById('prod-name');
       const priceInput = document.getElementById('prod-price');
       const name = nameInput.value.trim();
@@ -2885,6 +3087,7 @@
     }
 
     function deleteProduct(index) {
+      if (!isUserAdmin) return alert("只读模式下不可操作！");
       products.splice(index, 1);
       syncAllToCloud();
       renderProducts();
@@ -2918,6 +3121,7 @@
     }
 
     function undoActionTeacher() {
+      if (!isUserAdmin) return;
       if (undoStackTeacher.length === 0) return;
       redoStackTeacher.push(JSON.stringify(teacherAppData));
       const prev = undoStackTeacher.pop();
@@ -2928,6 +3132,7 @@
     }
 
     function redoActionTeacher() {
+      if (!isUserAdmin) return;
       if (redoStackTeacher.length === 0) return;
       undoStackTeacher.push(JSON.stringify(teacherAppData));
       const next = redoStackTeacher.pop();
@@ -3000,15 +3205,17 @@
         nameSpan.innerText = t.name;
         btn.appendChild(nameSpan);
 
-        const delBtn = document.createElement('span');
-        delBtn.className = 'del-teacher-btn';
-        delBtn.innerHTML = '×';
-        delBtn.title = `删除老师：${t.name}`;
-        delBtn.onclick = (e) => {
-          e.stopPropagation();
-          deleteTeacherByIdTeacher(t.id);
-        };
-        btn.appendChild(delBtn);
+        if (isUserAdmin) {
+          const delBtn = document.createElement('span');
+          delBtn.className = 'del-teacher-btn';
+          delBtn.innerHTML = '×';
+          delBtn.title = `删除老师：${t.name}`;
+          delBtn.onclick = (e) => {
+            e.stopPropagation();
+            deleteTeacherByIdTeacher(t.id);
+          };
+          btn.appendChild(delBtn);
+        }
 
         btn.onclick = () => {
           teacherAppData.currentTeacherId = t.id;
@@ -3021,6 +3228,7 @@
     }
 
     function deleteTeacherByIdTeacher(teacherId) {
+      if (!isUserAdmin) return;
       if (teacherAppData.teachers.length <= 1) return alert('系统至少需要保留一位老师！');
       const target = teacherAppData.teachers.find(t => t.id === teacherId);
       if (!target) return;
@@ -3038,6 +3246,7 @@
     }
 
     function deleteCurrentTeacherBtnTeacher() {
+      if (!isUserAdmin) return alert("只读模式下不可操作！");
       const teacher = getTeacherObj();
       if (teacher) deleteTeacherByIdTeacher(teacher.id);
     }
@@ -3150,7 +3359,6 @@
       return teacher.restDays.includes(dayOfWeek);
     }
 
-    // 教师时间段冲突检查器 (判断两个时段是否有交集)
     function isTimeOverlap(s1, e1, s2, e2) {
       const startA = timeToMinutesTeacher(s1);
       const endA = timeToMinutesTeacher(e1);
@@ -3201,7 +3409,7 @@
           inner.className = 'date-header-inner';
           inner.innerHTML = `<span>${date.getMonth() + 1}月${date.getDate()}日</span>`;
 
-          if (isCurrentMonth && !isPubRest) {
+          if (isCurrentMonth && !isPubRest && isUserAdmin) {
             const toggleBtn = document.createElement('button');
             toggleBtn.className = `date-header-btn ${isTeacherRest ? 'is-rest' : ''}`;
             toggleBtn.innerText = isTeacherRest ? '设为上班' : '设为休息';
@@ -3254,8 +3462,10 @@
 
           const timelineBox = document.createElement('div');
           timelineBox.className = 'day-timeline-box';
-          timelineBox.title = '点击此日期快速排课';
-          timelineBox.onclick = () => openAddCourseModalTeacher(dateStr);
+          timelineBox.title = isUserAdmin ? '点击此日期快速排课' : '';
+          if (isUserAdmin) {
+            timelineBox.onclick = () => openAddCourseModalTeacher(dateStr);
+          }
 
           for (let h = 0; h <= TOTAL_HOURS_TEACHER; h++) {
             const topPx = (h / TOTAL_HOURS_TEACHER) * TIMELINE_HEIGHT_TEACHER;
@@ -3304,10 +3514,12 @@
               <div class="time-tag">${c.start}-${c.end}</div>
               <div style="font-weight:700; font-size:11px;">${c.title}</div>
             `;
-            courseEl.onclick = (e) => {
-              e.stopPropagation();
-              editExistingCourseTeacher(c);
-            };
+            if (isUserAdmin) {
+              courseEl.onclick = (e) => {
+                e.stopPropagation();
+                editExistingCourseTeacher(c);
+              };
+            }
             timelineBox.appendChild(courseEl);
           });
 
@@ -3324,6 +3536,7 @@
     }
 
     function toggleSingleDayRestTeacher(dateStr, dayOfWeek) {
+      if (!isUserAdmin) return;
       pushHistoryTeacher();
       const teacher = getTeacherObj();
       if (!teacher.customRestDates) teacher.customRestDates = [];
@@ -3413,6 +3626,7 @@
     }
 
     function openStudentManagerModalTeacher() {
+      if (!isUserAdmin) return alert("只读模式下不可操作！");
       const teacher = getTeacherObj();
       document.getElementById('studentModalTitleTeacher').innerText = `管理【${teacher.name}】的学员名册`;
       document.getElementById('newStudentNameInputTeacher').value = '';
@@ -3454,6 +3668,7 @@
     }
 
     function addStudentToCurrentTeacherTeacher() {
+      if (!isUserAdmin) return alert("只读模式下不可操作！");
       const name = document.getElementById('newStudentNameInputTeacher').value.trim();
       const color = document.getElementById('newStudentColorInputTeacher').value;
       if (!name) return alert('请输入学员姓名');
@@ -3471,6 +3686,7 @@
     }
 
     function updateStudentPausedStateTeacher(idx, val) {
+      if (!isUserAdmin) return;
       pushHistoryTeacher();
       const teacher = getTeacherObj();
       teacher.students[idx].paused = (val === 'true');
@@ -3479,6 +3695,7 @@
     }
 
     function updateStudentColorTeacher(idx, color) {
+      if (!isUserAdmin) return;
       pushHistoryTeacher();
       const teacher = getTeacherObj();
       teacher.students[idx].color = color;
@@ -3487,6 +3704,7 @@
     }
 
     function removeStudentTeacher(idx) {
+      if (!isUserAdmin) return;
       if (!confirm('确定删除该学员吗？已排课表仍会保留该文字。')) return;
       pushHistoryTeacher();
       const teacher = getTeacherObj();
@@ -3500,6 +3718,7 @@
     let batchSelectedDaysTeacher = new Set([6]);
 
     function openBatchModalTeacher() {
+      if (!isUserAdmin) return alert("只读模式下不可操作！");
       const teacher = getTeacherObj();
       if (!teacher.students || teacher.students.length === 0) {
         alert('请先在顶部【👥 学员标识与管理】中为该老师添加学员！');
@@ -3545,6 +3764,7 @@
     }
 
     function applyBatchRuleBookingTeacher(forceProceed = false) {
+      if (!isUserAdmin) return;
       const title = document.getElementById('batchStudentSelectTeacher').value;
       const startDateStr = document.getElementById('batchStartDateTeacher').value;
       const startTime = document.getElementById('batchStartTimeTeacher').value;
@@ -3569,7 +3789,6 @@
         const isPub = teacherAppData.publicHolidays && teacherAppData.publicHolidays.includes(dateStr);
 
         if (batchSelectedDaysTeacher.has(dayOfWeek) && !isPub && !isTeacherRestDay(teacher, dateStr, dayOfWeek)) {
-          // 冲突排查
           (teacher.courses || []).forEach(existing => {
             if (existing.date === dateStr && isTimeOverlap(startTime, endTime, existing.start, existing.end)) {
               conflictList.push(`• 📅 ${dateStr}（已排：【${existing.title}】 ${existing.start}-${existing.end} 与 新课 ${startTime}-${endTime} 冲突）`);
@@ -3607,6 +3826,7 @@
     }
 
     function openAddCourseModalTeacher(presetDate = '') {
+      if (!isUserAdmin) return;
       const teacher = getTeacherObj();
       if (!teacher.students || teacher.students.length === 0) {
         alert('请先在顶部【👥 学员标识与管理】中添加学员！');
@@ -3624,6 +3844,7 @@
     }
 
     function editExistingCourseTeacher(course) {
+      if (!isUserAdmin) return;
       populateStudentSelectsTeacher(course.title);
       document.getElementById('courseModalHeaderTeacher').innerText = '编辑课程排课';
       document.getElementById('btnDeleteCourseTeacher').style.display = 'inline-block';
@@ -3635,6 +3856,7 @@
     }
 
     function saveSingleCourseTeacher(forceProceed = false) {
+      if (!isUserAdmin) return;
       const id = document.getElementById('editCourseIdTeacher').value;
       const title = document.getElementById('courseStudentSelectTeacher').value;
       const date = document.getElementById('courseDateTeacher').value;
@@ -3646,7 +3868,6 @@
       if (!date || !start || !end) return alert('请完整填写日期与时间');
       if (timeToMinutesTeacher(start) >= timeToMinutesTeacher(end)) return alert('开始时间必须早于结束时间');
 
-      // 冲突检测
       if (!forceProceed) {
         let conflicts = [];
         (teacher.courses || []).forEach(existing => {
@@ -3692,6 +3913,7 @@
     }
 
     function deleteCurrentCourseTeacher() {
+      if (!isUserAdmin) return;
       const id = document.getElementById('editCourseIdTeacher').value;
       const teacher = getTeacherObj();
       if (id && confirm('确定要删除这节课吗？')) {
@@ -3704,6 +3926,7 @@
     }
 
     function openPublicHolidayModalTeacher() {
+      if (!isUserAdmin) return alert("只读模式下不可操作！");
       document.getElementById('holidayPickerMonthTeacher').value = teacherAppData.currentMonth;
       renderHolidayCalendarTeacher();
       document.getElementById('publicHolidayModalTeacher').style.display = 'flex';
@@ -3729,7 +3952,7 @@
           if (!isCurrMonth) {
             html += `<td class="other-month">${date.getDate()}</td>`;
           } else {
-            html += `<td class="${isHoliday ? 'selected-holiday' : ''}" onclick="toggleHolidayFromCalendarTeacher('${dateStr}')">${date.getDate()}</td>`;
+            html += `<td class="${isHoliday ? 'selected-holiday' : ''}" onclick="${isUserAdmin ? `toggleHolidayFromCalendarTeacher('${dateStr}')` : ''}">${date.getDate()}</td>`;
           }
         });
         html += '</tr>';
@@ -3740,6 +3963,7 @@
     }
 
     function toggleHolidayFromCalendarTeacher(dateStr) {
+      if (!isUserAdmin) return;
       pushHistoryTeacher();
       if (!teacherAppData.publicHolidays) teacherAppData.publicHolidays = [];
       if (teacherAppData.publicHolidays.includes(dateStr)) {
@@ -3753,6 +3977,7 @@
     }
 
     function openEditRestModalTeacher() {
+      if (!isUserAdmin) return alert("只读模式下不可操作！");
       const teacher = getTeacherObj();
       document.getElementById('teacherRestModalTitleTeacher').innerText = `⚙️ 设置【${teacher.name}】的休息日`;
       document.getElementById('teacherRestPickerMonthTeacher').value = teacherAppData.currentMonth;
@@ -3769,6 +3994,7 @@
     }
 
     function toggleWeekRestBtnTeacher(btn, dayNum) {
+      if (!isUserAdmin) return;
       pushHistoryTeacher();
       const teacher = getTeacherObj();
       if (!teacher.restDays) teacher.restDays = [];
@@ -3808,7 +4034,7 @@
           if (!isCurrMonth) {
             html += `<td class="other-month">${date.getDate()}</td>`;
           } else {
-            html += `<td class="${isRest ? 'selected-teacher-rest' : ''}" onclick="toggleTeacherRestFromCalendarTeacher('${dateStr}', ${dayOfWeek})">${date.getDate()}</td>`;
+            html += `<td class="${isRest ? 'selected-teacher-rest' : ''}" onclick="${isUserAdmin ? `toggleTeacherRestFromCalendarTeacher('${dateStr}', ${dayOfWeek})` : ''}">${date.getDate()}</td>`;
           }
         });
         html += '</tr>';
@@ -3819,21 +4045,25 @@
     }
 
     function toggleTeacherRestFromCalendarTeacher(dateStr, dayOfWeek) {
+      if (!isUserAdmin) return;
       toggleSingleDayRestTeacher(dateStr, dayOfWeek);
       renderTeacherRestCalendarTeacher();
     }
 
     function toggleBtnSelectTeacher(btn) {
+      if (!isUserAdmin) return;
       btn.classList.toggle('active');
     }
 
     function openAddTeacherModalTeacher() {
+      if (!isUserAdmin) return alert("只读模式下不可操作！");
       document.getElementById('newTeacherNameTeacher').value = '';
       document.querySelectorAll('#newTeacherRestGroupTeacher .weekday-btn').forEach(b => b.classList.remove('active'));
       document.getElementById('addTeacherModalTeacher').style.display = 'flex';
     }
 
     function saveTeacherTeacher() {
+      if (!isUserAdmin) return;
       const name = document.getElementById('newTeacherNameTeacher').value.trim();
       if (!name) return alert('请输入老师姓名');
 
@@ -3876,6 +4106,7 @@
     }
 
     function importDataTeacher(event) {
+      if (!isUserAdmin) return alert("只有管理员才可以导入备份数据！");
       const file = event.target.files[0];
       if (!file) return;
       const reader = new FileReader();
@@ -3920,7 +4151,6 @@
       }
     }
 
-    // 开启 Supabase Realtime 实时双向监听
     function setupRealtimeListener() {
       if (!supabaseClient) return;
       try {
@@ -3936,6 +4166,7 @@
                 milestones = d.milestones || [];
                 products = d.products || [];
                 countdowns = d.countdowns || [];
+                if (d.currentAdminPassword) currentAdminPassword = d.currentAdminPassword;
                 if (d.teacherAppData && Array.isArray(d.teacherAppData.teachers)) {
                   teacherAppData = d.teacherAppData;
                 }
@@ -3956,6 +4187,7 @@
     });
 
     window.addEventListener('DOMContentLoaded', () => {
+      initAuthStatus();
       loadLocalCache();
       initMonthPicker();
       renderAllComponents();
