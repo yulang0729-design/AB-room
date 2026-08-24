@@ -1493,6 +1493,21 @@
   </style>
 </head>
 <body class="is-viewer-mode">
+  <!-- 登录弹窗 -->
+<div id="login-overlay" style="position: fixed; inset: 0; background: rgba(15, 23, 42, 0.85); display: flex; align-items: center; justify-content: center; z-index: 99999; backdrop-filter: blur(4px);">
+  <div style="background: #ffffff; padding: 32px 28px; border-radius: 12px; width: 320px; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2); font-family: sans-serif;">
+    <h3 style="margin: 0 0 20px 0; color: #1e293b; text-align: center; font-size: 18px; font-weight: 600;">工作台登录</h3>
+    <div style="margin-bottom: 14px;">
+      <label style="font-size: 12px; color: #64748b; display: block; margin-bottom: 6px;">账号邮箱</label>
+      <input type="email" id="auth-email" style="width: 100%; padding: 10px 12px; border: 1px solid #cbd5e1; border-radius: 6px; box-sizing: border-box; font-size: 14px;" placeholder="admin@zero.internal" />
+    </div>
+    <div style="margin-bottom: 20px;">
+      <label style="font-size: 12px; color: #64748b; display: block; margin-bottom: 6px;">密码</label>
+      <input type="password" id="auth-password" style="width: 100%; padding: 10px 12px; border: 1px solid #cbd5e1; border-radius: 6px; box-sizing: border-box; font-size: 14px;" placeholder="••••••••" />
+    </div>
+    <button id="btn-login" style="width: 100%; padding: 10px; background: #1e293b; color: #ffffff; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 500;">登 录</button>
+  </div>
+</div>
 
   <!-- 顶部主导航栏 -->
   <nav class="main-navigation-bar">
@@ -4195,6 +4210,47 @@
       forceSyncAllFromCloud();
       setupRealtimeListener();
     });
+    const loginOverlay = document.getElementById('login-overlay');
+  const btnLogin = document.getElementById('btn-login');
+
+  if (btnLogin) {
+    btnLogin.addEventListener('click', async () => {
+      const email = document.getElementById('auth-email').value.trim();
+      const password = document.getElementById('auth-password').value.trim();
+
+      if (!email || !password) {
+        alert("请输入账号和密码");
+        return;
+      }
+
+      btnLogin.innerText = "登录中...";
+      btnLogin.disabled = true;
+
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: email,
+        password: password,
+      });
+
+      btnLogin.innerText = "登 录";
+      btnLogin.disabled = false;
+
+      if (error) {
+        alert("登录失败：" + error.message);
+      } else {
+        if (loginOverlay) loginOverlay.style.display = 'none';
+        location.reload();
+      }
+    });
+  }
+
+  async function initAuthStatus() {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session) {
+      if (loginOverlay) loginOverlay.style.display = 'none';
+    } else {
+      if (loginOverlay) loginOverlay.style.display = 'flex';
+    }
+  }
   </script>
 </body>
 </html>
