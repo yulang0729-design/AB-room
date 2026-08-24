@@ -4217,16 +4217,40 @@
     btnLogin.addEventListener('click', async () => {
       const email = document.getElementById('auth-email').value.trim();
       const password = document.getElementById('auth-password').value.trim();
+// ====== 修复后的登录与鉴权逻辑 ======
+  const loginOverlay = document.getElementById('login-overlay');
+  const btnLogin = document.getElementById('btn-login');
+
+  // 获取有效的 supabase 客户端实例
+  function getSupabaseClient() {
+    if (typeof _supabase !== 'undefined') return _supabase;
+    if (typeof supabaseClient !== 'undefined') return supabaseClient;
+    if (typeof supabase !== 'undefined' && supabase.auth) return supabase;
+    if (window.supabase && window.supabase.auth) return window.supabase;
+    if (window._supabase) return window._supabase;
+    return null;
+  }
+
+  if (btnLogin) {
+    btnLogin.addEventListener('click', async () => {
+      const email = document.getElementById('auth-email').value.trim();
+      const password = document.getElementById('auth-password').value.trim();
 
       if (!email || !password) {
         alert("请输入账号和密码");
         return;
       }
 
+      const client = getSupabaseClient();
+      if (!client) {
+        alert("未找到 Supabase 客户端，请检查页面脚本初始化变量名");
+        return;
+      }
+
       btnLogin.innerText = "登录中...";
       btnLogin.disabled = true;
 
-      const { data, error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await client.auth.signInWithPassword({
         email: email,
         password: password,
       });
@@ -4244,11 +4268,14 @@
   }
 
   async function initAuthStatus() {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (session) {
-      if (loginOverlay) loginOverlay.style.display = 'none';
-    } else {
-      if (loginOverlay) loginOverlay.style.display = 'flex';
+    const client = getSupabaseClient();
+    if (client) {
+      const { data: { session } } = await client.auth.getSession();
+      if (session) {
+        if (loginOverlay) loginOverlay.style.display = 'none';
+      } else {
+        if (loginOverlay) loginOverlay.style.display = 'flex';
+      }
     }
   }
   </script>
