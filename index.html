@@ -4210,29 +4210,51 @@
       forceSyncAllFromCloud();
       setupRealtimeListener();
     });
-    const loginOverlay = document.getElementById('login-overlay');
-  const btnLogin = document.getElementById('btn-login');
+   // ==========================================
+// ====== 综合工作台：鉴权与初始化模块 ======
+// ==========================================
 
-  if (btnLogin) {
-    btnLogin.addEventListener('click', async () => {
-      const email = document.getElementById('auth-email').value.trim();
-      const password = document.getElementById('auth-password').value.trim();
-// ====== 修复后的登录与鉴权逻辑 ======
+// 1. 动态挂载登录弹窗 DOM（无需手动修改 HTML 顶部）
+(function ensureLoginOverlay() {
+  if (!document.getElementById('login-overlay')) {
+    const overlay = document.createElement('div');
+    overlay.id = 'login-overlay';
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(15,23,42,0.88);display:none;align-items:center;justify-content:center;z-index:999999;backdrop-filter:blur(5px);';
+    overlay.innerHTML = `
+      <div style="background:#ffffff;padding:32px 28px;border-radius:12px;width:320px;box-shadow:0 20px 25px -5px rgba(0,0,0,0.25);font-family:system-ui,-apple-system,sans-serif;">
+        <h3 style="margin:0 0 20px 0;color:#1e293b;text-align:center;font-size:18px;font-weight:600;">工作台身份验证</h3>
+        <div style="margin-bottom:14px;">
+          <label style="font-size:12px;color:#64748b;display:block;margin-bottom:6px;">账号邮箱</label>
+          <input type="email" id="auth-email" style="width:100%;padding:10px 12px;border:1px solid #cbd5e1;border-radius:6px;box-sizing:border-box;font-size:14px;outline:none;" placeholder="请输入邮箱" />
+        </div>
+        <div style="margin-bottom:20px;">
+          <label style="font-size:12px;color:#64748b;display:block;margin-bottom:6px;">访问密码</label>
+          <input type="password" id="auth-password" style="width:100%;padding:10px 12px;border:1px solid #cbd5e1;border-radius:6px;box-sizing:border-box;font-size:14px;outline:none;" placeholder="请输入密码" />
+        </div>
+        <button id="btn-login" style="width:100%;padding:10px;background:#1e293b;color:#ffffff;border:none;border-radius:6px;cursor:pointer;font-size:14px;font-weight:500;">登 录</button>
+      </div>
+    `;
+    document.body.appendChild(overlay);
+  }
+})();
+
+// 2. 登录与会话拦截控制器
+(function setupAuthSystem() {
   const loginOverlay = document.getElementById('login-overlay');
   const btnLogin = document.getElementById('btn-login');
 
-  // 获取有效的 supabase 客户端实例
-  function getSupabaseClient() {
-    if (typeof _supabase !== 'undefined') return _supabase;
-    if (typeof supabaseClient !== 'undefined') return supabaseClient;
+  // 获取页面中的 Supabase 实例
+  function getClient() {
+    if (typeof _supabase !== 'undefined' && _supabase.auth) return _supabase;
+    if (typeof supabaseClient !== 'undefined' && supabaseClient.auth) return supabaseClient;
     if (typeof supabase !== 'undefined' && supabase.auth) return supabase;
     if (window.supabase && window.supabase.auth) return window.supabase;
-    if (window._supabase) return window._supabase;
     return null;
   }
 
+  // 绑定点击登录
   if (btnLogin) {
-    btnLogin.addEventListener('click', async () => {
+    btnLogin.onclick = async () => {
       const email = document.getElementById('auth-email').value.trim();
       const password = document.getElementById('auth-password').value.trim();
 
@@ -4241,43 +4263,58 @@
         return;
       }
 
-      const client = getSupabaseClient();
+      const client = getClient();
       if (!client) {
-        alert("未找到 Supabase 客户端，请检查页面脚本初始化变量名");
+        alert("Supabase 客户端尚未就绪，请刷新页面重试");
         return;
       }
 
       btnLogin.innerText = "登录中...";
       btnLogin.disabled = true;
 
-      const { data, error } = await client.auth.signInWithPassword({
-        email: email,
-        password: password,
-      });
+      try {
+        const { data, error } = await client.auth.signInWithPassword({
+          email: email,
+          password: password,
+        });
 
-      btnLogin.innerText = "登 录";
-      btnLogin.disabled = false;
-
-      if (error) {
-        alert("登录失败：" + error.message);
-      } else {
-        if (loginOverlay) loginOverlay.style.display = 'none';
-        location.reload();
+        if (error) {
+          alert("登录失败：" + error.message);
+          btnLogin.innerText = "登 录";
+          btnLogin.disabled = false;
+        } else {
+          loginOverlay.style.display = 'none';
+          location.reload();
+        }
+      } catch (err) {
+        alert("请求异常：" + err.message);
+        btnLogin.innerText = "登 录";
+        btnLogin.disabled = false;
       }
-    });
+    };
   }
 
-  async function initAuthStatus() {
-    const client = getSupabaseClient();
-    if (client) {
-      const { data: { session } } = await client.auth.getSession();
-      if (session) {
+  // 状态检查
+  async function checkAuth() {
+    const client = getClient();
+    if (!client) {
+      setTimeout(checkAuth, 200);
+      return;
+    }
+    try {
+      const { data } = await client.auth.getSession();
+      if (data && data.session) {
         if (loginOverlay) loginOverlay.style.display = 'none';
       } else {
         if (loginOverlay) loginOverlay.style.display = 'flex';
       }
+    } catch (e) {
+      if (loginOverlay) loginOverlay.style.display = 'flex';
     }
   }
+
+  checkAuth();
+})();
   </script>
 </body>
 </html>
