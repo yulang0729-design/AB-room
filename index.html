@@ -4152,7 +4152,7 @@
       event.target.value = '';
     }
 
-    function renderTeacherApp() {
+  function renderTeacherApp() {
       try {
         const picker = document.getElementById('monthPickerTeacher');
         if (picker && teacherAppData.currentMonth) picker.value = teacherAppData.currentMonth;
@@ -4182,9 +4182,23 @@
                 products = d.products || [];
                 countdowns = d.countdowns || [];
                 if (d.currentAdminPassword) currentAdminPassword = d.currentAdminPassword;
+                
+                // 👉 核心修复：只同步教师数据，锁定本地当前选中的老师与月份不被别人带跑
                 if (d.teacherAppData && Array.isArray(d.teacherAppData.teachers)) {
+                  const myCurrentTeacher = teacherAppData.currentTeacher;
+                  const myCurrentMonth = teacherAppData.currentMonth;
+                  
                   teacherAppData = d.teacherAppData;
+                  
+                  // 如果本地之前选的老师依然在列表里，保持选中的老师不变
+                  if (myCurrentTeacher && teacherAppData.teachers.includes(myCurrentTeacher)) {
+                    teacherAppData.currentTeacher = myCurrentTeacher;
+                  }
+                  if (myCurrentMonth) {
+                    teacherAppData.currentMonth = myCurrentMonth;
+                  }
                 }
+
                 renderAllComponents();
                 renderTeacherApp();
                 updateSyncBadges('🟢 云端已同步 (实时)');
@@ -4197,7 +4211,7 @@
       }
     }
 
-   window.addEventListener('focus', () => {
+    window.addEventListener('focus', () => {
       forceSyncAllFromCloud();
     });
 
