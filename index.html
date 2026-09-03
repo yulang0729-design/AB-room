@@ -3207,8 +3207,7 @@
       const idx = Math.abs(hash) % PRESET_PALETTE_TEACHER.length;
       return PRESET_PALETTE_TEACHER[idx];
     }
-
-    function renderTabsTeacher() {
+function renderTabsTeacher() {
       const tabs = document.getElementById('teacherTabs');
       if (!tabs) return;
       tabs.innerHTML = '';
@@ -3259,10 +3258,70 @@
         renderTeacherApp();
       }
     }
-function deleteCurrentTeacherBtnTeacher() {
+
+    function deleteCurrentTeacherBtnTeacher() {
       if (!isUserAdmin) return alert("只读模式下不可操作！");
       const teacher = getTeacherObj();
       if (teacher) deleteTeacherByIdTeacher(teacher.id);
+    }
+
+    // ====== 业务功能：修改学员名字（级联修改课程） ======
+    function updateStudentNameDirect(oldName) {
+      if (!isUserAdmin) return alert("只读模式下不可操作！");
+      const newName = prompt(`请输入学员【${oldName}】的新姓名:`, oldName);
+      if (!newName || !newName.trim() || newName.trim() === oldName) return;
+      const finalName = newName.trim();
+
+      const teacher = getTeacherObj();
+      if (!teacher) return;
+
+      if (teacher.students && teacher.students.some(s => s.name === finalName)) {
+        return alert(`已存在名为【${finalName}】的学员！`);
+      }
+
+      pushHistoryTeacher();
+
+      // 1. 更新学员列表
+      if (teacher.students) {
+        teacher.students.forEach(s => {
+          if (s.name === oldName) s.name = finalName;
+        });
+      }
+
+      // 2. 级联更新已排课程标题
+      if (teacher.courses) {
+        teacher.courses.forEach(c => {
+          if (c.title === oldName) c.title = finalName;
+        });
+      }
+
+      if (selectedHighlightStudentTeacher === oldName) {
+        selectedHighlightStudentTeacher = finalName;
+      }
+
+      saveDataTeacher();
+      renderTeacherApp();
+      renderStudentManageListTeacher();
+      alert(`已将学员【${oldName}】成功更名为【${finalName}】，关联课表已同步！`);
+    }
+
+    // ====== 业务功能：清空该学员当月所有排课 ======
+    function clearStudentMonthScheduleDirect(studentName) {
+      if (!isUserAdmin) return alert("只读模式下不可操作！");
+      const currentMonth = teacherAppData.currentMonth;
+      if (!confirm(`确定要清空学员【${studentName}】在当前月份（${currentMonth}）的所有排课吗？`)) return;
+
+      const teacher = getTeacherObj();
+      if (!teacher || !teacher.courses) return;
+
+      pushHistoryTeacher();
+      const beforeCount = teacher.courses.length;
+      teacher.courses = teacher.courses.filter(c => !(c.title === studentName && c.date && c.date.startsWith(currentMonth)));
+      const removed = beforeCount - teacher.courses.length;
+
+      saveDataTeacher();
+      renderTeacherApp();
+      alert(`已清空学员【${studentName}】本月的 ${removed} 节排课！`);
     }
 
     function renderStudentCategoriesTeacher() {
@@ -3294,21 +3353,15 @@ function deleteCurrentTeacherBtnTeacher() {
           const isSelected = selectedHighlightStudentTeacher === st.name;
           return `
             <div class="student-tag ${isSelected ? 'active-filter' : ''}" 
-                 style="background-color: ${st.color}; display:inline-flex; align-items:center; gap:5px; padding-right:6px;" 
+                 style="background-color: ${st.color}; display:inline-flex; align-items:center; gap:4px; padding-right:6px;" 
                  onclick="toggleStudentHighlightTeacher('${st.name}')"
-                 title="点击高亮该学员在课表中的排课">
+                 title="点击高亮该学员排课">
               <span class="student-color-dot" style="background:#0f172a;"></span>
               <span>${st.name}</span>
-              
-              <!-- 修改学员姓名入口 -->
-              <span style="cursor:pointer; font-size:11px; opacity:0.6; padding:0 2px;" 
-                    title="修改学员姓名" 
-                    onclick="event.stopPropagation(); const newName = prompt('请输入学员【${st.name}】的新姓名:', '${st.name}'); if(newName) updateStudentName('${st.name}', newName);">✏️</span>
-              
-              <!-- 清空本月排课入口 -->
-              <span style="cursor:pointer; font-size:11px; opacity:0.6; padding:0 2px;" 
-                    title="清空该学员本月排课" 
-                    onclick="event.stopPropagation(); clearStudentMonthSchedule('${st.name}');">🗑️</span>
+              ${isUserAdmin ? `
+                <span style="cursor:pointer; font-size:11px; margin-left:2px;" title="修改名字" onclick="event.stopPropagation(); updateStudentNameDirect('${st.name}');">✏️</span>
+                <span style="cursor:pointer; font-size:11px; margin-left:1px;" title="清空本月课表" onclick="event.stopPropagation(); clearStudentMonthScheduleDirect('${st.name}');">🗑️</span>
+              ` : ''}
             </div>
           `;
         }).join('');
@@ -3524,7 +3577,7 @@ function deleteCurrentTeacherBtnTeacher() {
             courseEl.className = 'course-block';
             courseEl.style.backgroundColor = studentColor;
             courseEl.style.color = '#1e293b';
-            courseEl.style.top = `${top}px`;
+            courseEl.style.top = `${topPx || top}px`;
             courseEl.style.height = `${height}px`;
 
             if (selectedHighlightStudentTeacher) {
@@ -3676,6 +3729,8 @@ function deleteCurrentTeacherBtnTeacher() {
           <div style="display:flex; align-items:center; gap:8px; flex:1;">
             <input type="color" value="${st.color}" onchange="updateStudentColorTeacher(${idx}, this.value)" style="width:28px; height:24px; border:none; cursor:pointer;" title="修改颜色">
             <span style="font-size:13px; font-weight:600;">${st.name}</span>
+            <button onclick="updateStudentNameDirect('${st.name}')" style="padding:2px 6px; font-size:11px; border:1px solid #cbd5e1; background:#f8fafc; border-radius:4px; cursor:pointer;">✏️改名</button>
+            <button onclick="clearStudentMonthScheduleDirect('${st.name}')" style="padding:2px 6px; font-size:11px; border:1px solid #fca5a5; background:#fff1f2; color:#dc2626; border-radius:4px; cursor:pointer;">🗑️清空本月课表</button>
           </div>
           <div style="display:flex; align-items:center; gap:8px;">
             <select class="status-select" onchange="updateStudentPausedStateTeacher(${idx}, this.value)">
@@ -3835,7 +3890,6 @@ function deleteCurrentTeacherBtnTeacher() {
         });
         return;
       }
-
       pushHistoryTeacher();
       if (!teacher.courses) teacher.courses = [];
       teacher.courses.push(...newBatchCourses);
