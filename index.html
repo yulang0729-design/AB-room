@@ -3424,7 +3424,7 @@
           inner.className = 'date-header-inner';
           inner.innerHTML = `<span>${date.getMonth() + 1}月${date.getDate()}日</span>`;
 
-          if (isCurrentMonth && !isPubRest && isUserAdmin) {
+         if (isCurrentMonth && !isPubRest && isUserAdmin) {
             const toggleBtn = document.createElement('button');
             toggleBtn.className = `date-header-btn ${isTeacherRest ? 'is-rest' : ''}`;
             toggleBtn.innerText = isTeacherRest ? '设为上班' : '设为休息';
@@ -3433,6 +3433,18 @@
               toggleSingleDayRestTeacher(dateStr, dayOfWeek);
             };
             inner.appendChild(toggleBtn);
+
+            // ====== 新增：单日自定义工时按钮 ======
+            const whBtn = document.createElement('button');
+            whBtn.className = 'date-header-btn';
+            whBtn.innerText = '⏰工时';
+            whBtn.style.marginLeft = '4px';
+            whBtn.title = '设置当天工作时间';
+            whBtn.onclick = (e) => {
+              e.stopPropagation();
+              openCustomWorkHoursModal(dateStr);
+            };
+            inner.appendChild(whBtn);
           }
 
           th.appendChild(inner);
@@ -3499,7 +3511,6 @@
               timelineBox.appendChild(txt);
             }
           }
-
           const dayCourses = (teacher.courses || []).filter(c => c.date === dateStr);
           dayCourses.forEach(c => {
             const startM = timeToMinutesTeacher(c.start);
