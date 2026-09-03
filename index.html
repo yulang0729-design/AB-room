@@ -4210,7 +4210,128 @@
         console.warn("Realtime listener error:", e);
       }
     }
+// ========================================================
+    // 1. 教师特定日期工作时间管理
+    // ========================================================
+    function getTeacherDayWorkHours(teacher, dateStr) {
+      if (teacherAppData.customWorkHours && 
+          teacherAppData.customWorkHours[teacher] && 
+          teacherAppData.customWorkHours[teacher][dateStr]) {
+        return teacherAppData.customWorkHours[teacher][dateStr];
+      }
+      return { start: "09:00", end: "18:00" };
+    }
 
+    function openCustomWorkHoursModal(dateStr) {
+      const teacher = teacherAppData.currentTeacher;
+      const currentHours = getTeacherDayWorkHours(teacher, dateStr);
+      
+      const modalHtml = `
+        <div id="workhours-modal" style="position:fixed;inset:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:99999;">
+          <div style="background:#fff;padding:24px;border-radius:10px;width:300px;box-shadow:0 10px 25px rgba(0,0,0,0.15);">
+            <h4 style="margin:0 0 16px;color:#1e293b;">设置 ${teacher} 的工时 (${dateStr})</h4>
+            <div style="margin-bottom:12px;">
+              <label style="font-size:12px;color:#64748b;display:block;margin-bottom:4px;">上班时间</label>
+              <input type="time" id="wh-start" value="${currentHours.start}" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;box-sizing:border-box;" />
+            </div>
+            <div style="margin-bottom:20px;">
+              <label style="font-size:12px;color:#64748b;display:block;margin-bottom:4px;">下班时间</label>
+              <input type="time" id="wh-end" value="${currentHours.end}" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;box-sizing:border-box;" />
+            </div>
+            <div style="display:flex;gap:10px;justify-content:flex-end;">
+              <button id="wh-cancel" style="padding:6px 12px;border:1px solid #cbd5e1;background:#fff;border-radius:6px;cursor:pointer;">取消</button>
+              <button id="wh-reset" style="padding:6px 12px;border:1px solid #f59e0b;color:#d97706;background:#fff;border-radius:6px;cursor:pointer;">恢复默认(9-18)</button>
+              <button id="wh-save" style="padding:6px 14px;border:none;background:#2563eb;color:#fff;border-radius:6px;cursor:pointer;">保存</button>
+            </div>
+          </div>
+        </div>
+      `;
+      document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+      document.getElementById('wh-cancel').onclick = () => document.getElementById('workhours-modal').remove();
+      
+      document.getElementById('wh-reset').onclick = () => {
+        if (teacherAppData.customWorkHours && teacherAppData.customWorkHours[teacher]) {
+          delete teacherAppData.customWorkHours[teacher][dateStr];
+        }
+        document.getElementById('workhours-modal').remove();
+        if (typeof forceSyncAllFromCloud === 'function') forceSyncAllFromCloud();
+        renderTeacherApp();
+      };
+
+      document.getElementById('wh-save').onclick = () => {
+        const start = document.getElementById('wh-start').value;
+        const end = document.getElementById('wh-end').value;
+        if (!start || !end || start >= end) {
+          alert("请填写有效的起始和结束时间");
+          return;
+        }
+        if (!teacherAppData.customWorkHours) teacherAppData.customWorkHours = {};
+        if (!teacherAppData.customWorkHours[teacher]) teacherAppData.customWorkHours[teacher] = {};
+        
+        teacherAppData.customWorkHours[teacher][dateStr] = { start, end };
+        document.getElementById('workhours-modal').remove();
+        if (typeof forceSyncAllFromCloud === 'function') forceSyncAllFromCloud();
+        renderTeacherApp();
+      };
+    }
+
+    // ========================================================
+    // 2. 清空该学员本月所有排课
+    // ========================================================
+    function clearStudentMonthSchedule(studentName) {
+      const currentMonth = teacherAppData.currentMonth;
+      if (!confirm(`确定要清空学员【${studentName}】在 ${currentMonth} 的所有排课记录吗？此操作不可撤销。`)) {
+        return;
+      }
+
+      let removedCount = 0;
+      Object.keys(scheduleData).forEach(dateStr => {
+        if (dateStr.startsWith(currentMonth) && Array.isArray(scheduleData[dateStr])) {
+          const beforeLen = scheduleData[dateStr].length;
+          scheduleData[dateStr] = scheduleData[dateStr].filter(item => {
+            return item.student !== studentName && item.title !== studentName;
+          });
+          removedCount += (beforeLen - scheduleData[dateStr].length);
+        }
+      });
+
+      alert(`已清除学员【${studentName}】本月共 ${removedCount} 个排课时段。`);
+      if (typeof forceSyncAllFromCloud === 'function') forceSyncAllFromCloud();
+      renderTeacherApp();
+    }
+
+    // ========================================================
+    // 3. 修改学员姓名
+    // ========================================================
+    function updateStudentName(oldName, newName) {
+      newName = (newName || '').trim();
+      if (!newName) {
+        alert("学员姓名不能为空");
+        return;
+      }
+      if (oldName === newName) return;
+
+      if (Array.isArray(classes)) {
+        classes.forEach(c => {
+          if (c.name === oldName) c.name = newName;
+          if (c.studentName === oldName) c.studentName = newName;
+        });
+      }
+
+      Object.keys(scheduleData).forEach(dateStr => {
+        if (Array.isArray(scheduleData[dateStr])) {
+          scheduleData[dateStr].forEach(item => {
+            if (item.student === oldName) item.student = newName;
+            if (item.title === oldName) item.title = newName;
+          });
+        }
+      });
+
+      alert(`学员名字已从【${oldName}】更新为【${newName}】并同步关联课表。`);
+      if (typeof forceSyncAllFromCloud === 'function') forceSyncAllFromCloud();
+      renderTeacherApp();
+    }
     window.addEventListener('focus', () => {
       forceSyncAllFromCloud();
     });
