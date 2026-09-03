@@ -3259,8 +3259,7 @@
         renderTeacherApp();
       }
     }
-
-    function deleteCurrentTeacherBtnTeacher() {
+function deleteCurrentTeacherBtnTeacher() {
       if (!isUserAdmin) return alert("只读模式下不可操作！");
       const teacher = getTeacherObj();
       if (teacher) deleteTeacherByIdTeacher(teacher.id);
@@ -3295,11 +3294,21 @@
           const isSelected = selectedHighlightStudentTeacher === st.name;
           return `
             <div class="student-tag ${isSelected ? 'active-filter' : ''}" 
-                 style="background-color: ${st.color};" 
+                 style="background-color: ${st.color}; display:inline-flex; align-items:center; gap:5px; padding-right:6px;" 
                  onclick="toggleStudentHighlightTeacher('${st.name}')"
-                 title="点击高亮该学员在课表中的所有排课">
+                 title="点击高亮该学员在课表中的排课">
               <span class="student-color-dot" style="background:#0f172a;"></span>
               <span>${st.name}</span>
+              
+              <!-- 修改学员姓名入口 -->
+              <span style="cursor:pointer; font-size:11px; opacity:0.6; padding:0 2px;" 
+                    title="修改学员姓名" 
+                    onclick="event.stopPropagation(); const newName = prompt('请输入学员【${st.name}】的新姓名:', '${st.name}'); if(newName) updateStudentName('${st.name}', newName);">✏️</span>
+              
+              <!-- 清空本月排课入口 -->
+              <span style="cursor:pointer; font-size:11px; opacity:0.6; padding:0 2px;" 
+                    title="清空该学员本月排课" 
+                    onclick="event.stopPropagation(); clearStudentMonthSchedule('${st.name}');">🗑️</span>
             </div>
           `;
         }).join('');
@@ -3396,7 +3405,7 @@
       const table = document.createElement('table');
       table.className = 'month-table';
 
-     const thead = document.createElement('thead');
+      const thead = document.createElement('thead');
       const trWeek = document.createElement('tr');
       trWeek.className = 'weekday-row';
       WEEK_DAYS_TEACHER.forEach(w => {
@@ -3406,7 +3415,6 @@
       });
       thead.appendChild(trWeek);
       table.appendChild(thead);
-
       const tbody = document.createElement('tbody');
 
       weeks.forEach(week => {
