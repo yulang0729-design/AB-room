@@ -3577,7 +3577,7 @@ function renderTabsTeacher() {
             courseEl.className = 'course-block';
             courseEl.style.backgroundColor = studentColor;
             courseEl.style.color = '#1e293b';
-            courseEl.style.top = `${topPx || top}px`;
+            courseEl.style.top = `${top}px`;
             courseEl.style.height = `${height}px`;
 
             if (selectedHighlightStudentTeacher) {
@@ -4246,14 +4246,14 @@ function renderTabsTeacher() {
                 
                 // 👉 核心修复：只同步教师数据，锁定本地当前选中的老师与月份不被别人带跑
                 if (d.teacherAppData && Array.isArray(d.teacherAppData.teachers)) {
-                  const myCurrentTeacher = teacherAppData.currentTeacher;
+                  const myCurrentTeacher = teacherAppData.currentTeacherId;
                   const myCurrentMonth = teacherAppData.currentMonth;
                   
                   teacherAppData = d.teacherAppData;
                   
                   // 如果本地之前选的老师依然在列表里，保持选中的老师不变
                   if (myCurrentTeacher && teacherAppData.teachers.includes(myCurrentTeacher)) {
-                    teacherAppData.currentTeacher = myCurrentTeacher;
+                    teacherAppData.currentTeacherId = myCurrentTeacher;
                   }
                   if (myCurrentMonth) {
                     teacherAppData.currentMonth = myCurrentMonth;
