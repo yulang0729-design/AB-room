@@ -1457,6 +1457,82 @@
       font-size: 10px;
     }
 
+    /* 教师休息日二次确认弹窗 */
+    .teacher-rest-confirm-card {
+      background: #fff;
+      border-radius: 12px;
+      padding: 24px;
+      width: 420px;
+      max-width: 92%;
+      box-shadow: 0 12px 30px rgba(0,0,0,0.2);
+      border-top: 5px solid #059669;
+    }
+
+    .teacher-rest-confirm-title {
+      font-size: 17px;
+      font-weight: 700;
+      color: #0f172a;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+
+    .teacher-rest-confirm-info {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 14px;
+      margin-bottom: 14px;
+      line-height: 1.7;
+      font-size: 13px;
+      color: #475569;
+    }
+
+    .teacher-rest-confirm-info strong {
+      color: #0f172a;
+    }
+
+    .teacher-rest-confirm-change {
+      margin-top: 8px;
+      padding: 8px 10px;
+      border-radius: 6px;
+      background: #ecfdf5;
+      color: #047857;
+      font-weight: 700;
+    }
+
+    .teacher-rest-confirm-card .confirm-cancel {
+      background: #f1f5f9;
+      color: #475569;
+      border-color: #cbd5e1;
+    }
+
+    .teacher-rest-confirm-card .confirm-cancel:hover {
+      background: #e2e8f0;
+    }
+
+    .teacher-rest-confirm-card .confirm-ok {
+      background: #059669 !important;
+      border: 1px solid #059669 !important;
+      color: #ffffff !important;
+      font-weight: 700;
+      opacity: 1 !important;
+    }
+
+    .teacher-rest-confirm-card .confirm-ok:hover {
+      background: #047857 !important;
+      border-color: #047857 !important;
+      color: #ffffff !important;
+    }
+
+    .teacher-rest-confirm-card .confirm-cancel {
+      color: #475569 !important;
+      background: #ffffff !important;
+      border: 1px solid #cbd5e1 !important;
+      opacity: 1 !important;
+    }
+
     /* 冲突报警弹窗 */
     .conflict-modal-card {
       background: #fff;
@@ -2009,6 +2085,33 @@
         <div class="modal-footer">
           <button onclick="closeModalTeacher('addTeacherModalTeacher')">取消</button>
           <button class="primary" onclick="saveTeacherTeacher()">保存</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 教师休息日二次确认弹窗 -->
+    <div class="modal" id="teacherRestConfirmModalTeacher">
+      <div class="teacher-rest-confirm-card">
+        <div class="teacher-rest-confirm-title">
+          <span>⚠️</span>
+          <span>确认调整教师工作状态</span>
+        </div>
+
+        <div class="teacher-rest-confirm-info">
+          <div>教师：<strong id="teacherRestConfirmTeacherTeacher">--</strong></div>
+          <div>日期：<strong id="teacherRestConfirmDateTeacher">--</strong></div>
+          <div class="teacher-rest-confirm-change" id="teacherRestConfirmChangeTeacher">
+            即将设为休息
+          </div>
+        </div>
+
+        <div style="font-size:12px; color:#64748b; line-height:1.6;">
+          此操作会影响当天的排课状态。确认无误后再点击“确认设置”。
+        </div>
+
+        <div class="modal-footer" style="margin-top:16px;">
+          <button type="button" class="confirm-cancel" onclick="closeModalTeacher('teacherRestConfirmModalTeacher')">取消</button>
+          <button type="button" class="confirm-ok" id="btnConfirmTeacherRestChange">确认设置</button>
         </div>
       </div>
     </div>
@@ -2706,7 +2809,14 @@
         container.innerHTML = `<div style="font-size:13px; color:#6b7280;">暂无标记节点，您可在点击日历排课块时一键标记，或在上方选班标注“开班”、“半期”、“结课”。</div>`;
         return;
       }
-      milestones.forEach(m => {
+      // 每次渲染前按节点日期升序排列，确保云端/备份载入后的显示顺序也保持正确
+      const sortedMilestones = [...milestones].sort((a, b) => {
+        const dateA = String(a.dateKey || '');
+        const dateB = String(b.dateKey || '');
+        return dateA.localeCompare(dateB);
+      });
+
+      sortedMilestones.forEach(m => {
         let targetRooms = getRoomsForClass(m.className);
         let roomDesc = targetRooms.length > 0 ? ` (教室 ${targetRooms.join('/')})` : '';
 
@@ -2859,21 +2969,11 @@
       const yearSelect = document.getElementById('year-select');
       const monthSelect = document.getElementById('month-select');
       if (!yearSelect || !monthSelect) return;
+      // 默认打开“实际当前月份”，而不是历史排课数据中最早的月份。
+      // 例如现在是 2026 年 9 月，工作台首次打开就显示 2026 年 9 月。
       const now = new Date();
-      let targetYear = now.getFullYear();
-      let targetMonth = now.getMonth() + 1;
-
-      try {
-        let dates = Object.keys(scheduleData).map(k => k.split('_')[1]).filter(Boolean);
-        if (dates.length > 0) {
-          dates.sort();
-          let parts = dates[0].split('-');
-          if (parts.length >= 2) {
-            targetYear = parseInt(parts[0]) || targetYear;
-            targetMonth = parseInt(parts[1]) || targetMonth;
-          }
-        }
-      } catch(e) {}
+      const targetYear = now.getFullYear();
+      const targetMonth = now.getMonth() + 1;
 
       yearSelect.innerHTML = '';
       monthSelect.innerHTML = '';
@@ -3491,7 +3591,7 @@ function renderTabsTeacher() {
             toggleBtn.innerText = isTeacherRest ? '设为上班' : '设为休息';
             toggleBtn.onclick = (e) => {
               e.stopPropagation();
-              toggleSingleDayRestTeacher(dateStr, dayOfWeek);
+              openTeacherRestConfirmTeacher(dateStr, dayOfWeek);
             };
             inner.appendChild(toggleBtn);
           }
@@ -3610,10 +3710,64 @@ function renderTabsTeacher() {
       applyZoomTeacher(teacherZoomScale);
     }
 
+    // 教师休息日调整的二次确认入口
+    let pendingTeacherRestChange = null;
+
+    function openTeacherRestConfirmTeacher(dateStr, dayOfWeek, refreshPickerAfter = false) {
+      if (!isUserAdmin) return;
+
+      const teacher = getTeacherObj();
+      if (!teacher) return;
+
+      const isCurrentRest = isTeacherRestDay(teacher, dateStr, dayOfWeek);
+      const targetStatus = isCurrentRest ? '设为上班' : '设为休息';
+      const statusText = isCurrentRest ? '上班' : '休息';
+
+      pendingTeacherRestChange = {
+        dateStr,
+        dayOfWeek,
+        refreshPickerAfter
+      };
+
+      const dateObj = new Date(dateStr + 'T00:00:00');
+      const weekdayNames = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
+
+      document.getElementById('teacherRestConfirmTeacherTeacher').innerText =
+        teacher.name || '当前教师';
+      document.getElementById('teacherRestConfirmDateTeacher').innerText =
+        `${dateObj.getMonth() + 1}月${dateObj.getDate()}日（${weekdayNames[dayOfWeek]}）`;
+      document.getElementById('teacherRestConfirmChangeTeacher').innerText =
+        `当前状态：${isCurrentRest ? '休息' : '上班'}  →  ${statusText}`;
+
+      const confirmBtn = document.getElementById('btnConfirmTeacherRestChange');
+      confirmBtn.innerText = `确认${targetStatus}`;
+      confirmBtn.onclick = () => {
+        applyTeacherRestChangeTeacher();
+      };
+
+      document.getElementById('teacherRestConfirmModalTeacher').style.display = 'flex';
+    }
+
+    function applyTeacherRestChangeTeacher() {
+      if (!isUserAdmin || !pendingTeacherRestChange) return;
+
+      const { dateStr, dayOfWeek, refreshPickerAfter } = pendingTeacherRestChange;
+      pendingTeacherRestChange = null;
+
+      closeModalTeacher('teacherRestConfirmModalTeacher');
+      toggleSingleDayRestTeacher(dateStr, dayOfWeek);
+
+      if (refreshPickerAfter) {
+        renderTeacherRestCalendarTeacher();
+      }
+    }
+
     function toggleSingleDayRestTeacher(dateStr, dayOfWeek) {
       if (!isUserAdmin) return;
       pushHistoryTeacher();
       const teacher = getTeacherObj();
+      if (!teacher) return;
+
       if (!teacher.customRestDates) teacher.customRestDates = [];
       if (!teacher.workOverrideDates) teacher.workOverrideDates = [];
       if (!teacher.restDays) teacher.restDays = [];
@@ -4122,8 +4276,7 @@ function renderTabsTeacher() {
 
     function toggleTeacherRestFromCalendarTeacher(dateStr, dayOfWeek) {
       if (!isUserAdmin) return;
-      toggleSingleDayRestTeacher(dateStr, dayOfWeek);
-      renderTeacherRestCalendarTeacher();
+      openTeacherRestConfirmTeacher(dateStr, dayOfWeek, true);
     }
 
     function toggleBtnSelectTeacher(btn) {
