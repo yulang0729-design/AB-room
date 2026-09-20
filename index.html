@@ -1533,6 +1533,151 @@
       opacity: 1 !important;
     }
 
+    .class-action-legend {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin: 8px 0 6px;
+      padding: 4px 8px;
+      color: #64748b;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .class-action-legend span:not(:first-child) {
+      padding: 2px 7px;
+      border-radius: 5px;
+      background: rgba(255,255,255,0.72);
+      border: 1px solid #dbe4ee;
+    }
+
+    .class-action-btn {
+      display: inline-flex !important;
+      align-items: center;
+      justify-content: center;
+      width: 28px;
+      height: 26px;
+      padding: 0 !important;
+      margin-left: 3px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 15px;
+      line-height: 1;
+      background: rgba(255,255,255,0.38);
+      color: inherit;
+      border: 1px solid rgba(0,0,0,0.08);
+      box-sizing: border-box;
+    }
+
+    .class-action-btn:hover {
+      background: rgba(255,255,255,0.75);
+      transform: translateY(-1px);
+    }
+
+    #modal-class-select option[data-historical="true"] {
+      color: #6b7280;
+      font-style: italic;
+    }
+
+    /* 本月在开班级 */
+    .current-month-classes-box {
+      margin-top: 12px;
+      padding: 10px 12px;
+      border: 1px solid #bfdbfe;
+      border-radius: 9px;
+      background: #eff6ff;
+    }
+    .current-month-classes-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 8px;
+      color: #1e3a8a;
+      font-size: 14px;
+      font-weight: 700;
+    }
+    .current-month-classes-title > span:last-child {
+      color: #64748b;
+      font-size: 12px;
+      font-weight: 500;
+    }
+    .current-month-classes-list {
+      display: grid;
+      grid-template-columns: repeat(6, minmax(120px, 1fr));
+      gap: 10px;
+      align-items: start;
+      min-height: 28px;
+    }
+
+    .current-month-class-group {
+      min-width: 0;
+    }
+
+    .current-month-class-group-title {
+      margin-bottom: 6px;
+      padding-bottom: 4px;
+      border-bottom: 2px solid #dbeafe;
+      color: #334155;
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    .current-month-class-group-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .current-month-class-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 10px;
+      border-radius: 999px;
+      border: 1px solid #dbeafe;
+      background: #fff;
+      color: #334155;
+      font-size: 13px;
+      font-weight: 600;
+    }
+    .current-month-class-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex: 0 0 auto;
+    }
+    /* 已删除班级的历史排课：保留记录，但用灰色弱化显示 */
+    .period-slot.historical-occupied {
+      background: #e5e7eb !important;
+      color: #4b5563 !important;
+      border-color: #cbd5e1 !important;
+      opacity: 0.88;
+    }
+
+    .period-slot.historical-occupied:hover {
+      background: #dfe3e8 !important;
+      color: #1f2937 !important;
+      opacity: 1;
+    }
+
+    .current-month-classes-empty {
+      color: #94a3b8;
+      font-size: 12px;
+      padding: 5px 0;
+    }
+
+    @media (max-width: 1100px) {
+      .current-month-classes-list {
+        grid-template-columns: repeat(3, minmax(140px, 1fr));
+      }
+    }
+
+    @media (max-width: 700px) {
+      .current-month-classes-list {
+        grid-template-columns: repeat(2, minmax(130px, 1fr));
+      }
+    }
+
     /* 冲突报警弹窗 */
     .conflict-modal-card {
       background: #fff;
@@ -1629,17 +1774,6 @@
 
       <div class="grid-container">
 
-        <!-- 板块 1：倒计时 -->
-        <div class="card">
-          <div class="card-title">🌟 重要时间节点倒计时</div>
-          <div class="countdown-form admin-only-feature">
-            <input type="text" id="new-countdown-name" placeholder="事件名称（例：JLPT 报名/考试/查成绩）" style="width: 260px;">
-            <input type="datetime-local" id="new-countdown-time" style="width: 220px;">
-            <button onclick="addCountdown()">+ 添加倒计时</button>
-          </div>
-          <div class="countdown-grid" id="countdown-list"></div>
-        </div>
-
         <!-- 板块 2：全月网格排课 -->
         <div class="card">
           <div class="card-title">🌟 全月日历网格排课</div>
@@ -1652,7 +1786,22 @@
               <input type="color" id="class-color" value="#3b82f6">
               <button onclick="addClass()" style="background: #10b981;">新建班级</button>
             </div>
+            <div class="class-action-legend">
+              <span>操作：</span>
+              <span>✏️ 修改名称</span>
+              <span>🗑️ 清空排课</span>
+              <span>× 删除班级</span>
+            </div>
+
             <div class="tag-list" id="class-tags"></div>
+
+            <div class="current-month-classes-box">
+              <div class="current-month-classes-title">
+                <span>📚 本月在开班级</span>
+                <span id="current-month-classes-label">--</span>
+              </div>
+              <div class="current-month-classes-list" id="current-month-classes-list"></div>
+            </div>
           </div>
 
           <div class="panel-box admin-only-feature" style="background: #eff6ff; border-color: #93c5fd;">
@@ -1753,6 +1902,17 @@
             <button onclick="addProduct()">添加课程商品</button>
           </div>
           <div class="product-list" id="product-list"></div>
+        </div>
+
+        <!-- 板块 1：倒计时 -->
+        <div class="card">
+          <div class="card-title">🌟 重要时间节点倒计时</div>
+          <div class="countdown-form admin-only-feature">
+            <input type="text" id="new-countdown-name" placeholder="事件名称（例：JLPT 报名/考试/查成绩）" style="width: 260px;">
+            <input type="datetime-local" id="new-countdown-time" style="width: 220px;">
+            <button onclick="addCountdown()">+ 添加倒计时</button>
+          </div>
+          <div class="countdown-grid" id="countdown-list"></div>
         </div>
 
       </div>
@@ -2700,6 +2860,46 @@
       renderClasses();
     }
 
+    function renameClass(index, event) {
+      if (event) event.stopPropagation();
+      if (!isUserAdmin) return alert("只读模式下不可操作！");
+
+      const cls = classes[index];
+      if (!cls) return;
+
+      const oldName = cls.name;
+      const newName = prompt('请输入新的班级名称：', oldName);
+      if (newName === null) return;
+
+      const trimmedName = newName.trim();
+      if (!trimmedName) return alert('班级名称不能为空！');
+      if (trimmedName === oldName) return;
+      if (classes.some((c, i) => i !== index && c.name === trimmedName)) {
+        return alert('该班级名称已存在，请换一个名称！');
+      }
+
+      cls.name = trimmedName;
+
+      // 同步修改所有日历排课中的班级名称
+      Object.keys(scheduleData).forEach(slotKey => {
+        if (scheduleData[slotKey] === oldName) {
+          scheduleData[slotKey] = trimmedName;
+        }
+      });
+
+      // 同步修改已记录的里程碑
+      milestones.forEach(m => {
+        if (m.className === oldName) m.className = trimmedName;
+      });
+
+      syncAllToCloud();
+      renderClasses();
+      renderMilestones();
+      renderCalendars();
+
+      alert(`班级名称已修改为「${trimmedName}」，相关排课与里程碑已同步更新。`);
+    }
+
     function deleteClass(index) {
       if (!isUserAdmin) return alert("只读模式下不可操作！");
       let targetName = classes[index].name;
@@ -2755,8 +2955,9 @@
         tag.innerHTML = `
           <span>${c.name}</span>
           ${isUserAdmin ? `
-            <span class="class-action-btn" title="一键清空该班级所有排课" onclick="clearAllScheduleForClass('${c.name}')">🗑️ 清空排课</span>
-            <span class="class-action-btn" title="删除班级" onclick="deleteClass(${index})">✕</span>
+            <span class="class-action-btn" title="修改班级名称" aria-label="修改班级名称" onclick="renameClass(${index}, event)">✏️</span>
+            <span class="class-action-btn" title="清空该班级所有排课" aria-label="清空该班级所有排课" onclick="clearAllScheduleForClass('${c.name}')">🗑️</span>
+            <span class="class-action-btn" title="删除班级" aria-label="删除班级" onclick="deleteClass(${index})">×</span>
           ` : ''}
         `;
         container.appendChild(tag);
@@ -2765,8 +2966,95 @@
         milestoneSelect.appendChild(new Option(c.name, c.name));
         modalSelect.appendChild(new Option(c.name, c.name));
       });
+
+      renderCurrentMonthClasses();
     }
 
+    function renderCurrentMonthClasses() {
+      const container = document.getElementById('current-month-classes-list');
+      const label = document.getElementById('current-month-classes-label');
+      if (!container || !label) return;
+
+      const yearElem = document.getElementById('year-select');
+      const monthElem = document.getElementById('month-select');
+      const now = new Date();
+
+      const year = yearElem && yearElem.value ? parseInt(yearElem.value) : now.getFullYear();
+      const month = monthElem && monthElem.value ? parseInt(monthElem.value) : now.getMonth() + 1;
+      const monthPrefix = `${year}-${String(month).padStart(2, '0')}`;
+
+      label.innerText = `${year}年${month}月`;
+
+      const activeNames = new Set();
+      Object.keys(scheduleData).forEach(slotKey => {
+        const parts = slotKey.split('_');
+        const dateKey = parts[1];
+        if (dateKey && dateKey.startsWith(monthPrefix) && scheduleData[slotKey]) {
+          activeNames.add(scheduleData[slotKey]);
+        }
+      });
+
+      const activeClasses = classes.filter(c => activeNames.has(c.name));
+      container.innerHTML = '';
+
+      if (activeClasses.length === 0) {
+        container.innerHTML = '<div class="current-month-classes-empty">本月暂无已排课班级</div>';
+        return;
+      }
+
+      // 按班级名称前缀分为 N5 / N4 / N3 / N2 / N1 / 其他。
+      const groups = [
+        { key: 'N5', label: 'N5班' },
+        { key: 'N4', label: 'N4班' },
+        { key: 'N3', label: 'N3班' },
+        { key: 'N2', label: 'N2班' },
+        { key: 'N1', label: 'N1班' },
+        { key: 'OTHER', label: '其他' }
+      ];
+
+      const grouped = { N5: [], N4: [], N3: [], N2: [], N1: [], OTHER: [] };
+
+      activeClasses.forEach(c => {
+        const name = String(c.name || '').trim().toUpperCase();
+        const match = name.match(/^N([1-5])(?:\b|[^0-9])/);
+        const key = match ? `N${match[1]}` : 'OTHER';
+        grouped[key].push(c);
+      });
+
+      groups.forEach(group => {
+        if (grouped[group.key].length === 0) return;
+
+        const groupEl = document.createElement('div');
+        groupEl.className = 'current-month-class-group';
+
+        const title = document.createElement('div');
+        title.className = 'current-month-class-group-title';
+        title.innerText = group.label;
+
+        const list = document.createElement('div');
+        list.className = 'current-month-class-group-list';
+
+        grouped[group.key].forEach(c => {
+          const item = document.createElement('div');
+          item.className = 'current-month-class-item';
+
+          const dot = document.createElement('span');
+          dot.className = 'current-month-class-dot';
+          dot.style.backgroundColor = c.color || '#94a3b8';
+
+          const name = document.createElement('span');
+          name.innerText = c.name;
+
+          item.appendChild(dot);
+          item.appendChild(name);
+          list.appendChild(item);
+        });
+
+        groupEl.appendChild(title);
+        groupEl.appendChild(list);
+        container.appendChild(groupEl);
+      });
+    }
     function getRoomsForClass(className) {
       let rooms = new Set();
       Object.keys(scheduleData).forEach(slotKey => {
@@ -3005,6 +3293,8 @@
       const monthElem = document.getElementById('month-select');
       if (!yearElem || !monthElem || !yearElem.value) return;
 
+      renderCurrentMonthClasses();
+
       const year = parseInt(yearElem.value);
       const month = parseInt(monthElem.value);
       
@@ -3075,12 +3365,19 @@
                   let customStyle = '';
                   let badgeHtml = '';
 
+                  let isHistoricalClass = false;
+
                   if(isOccupied) {
                     let targetClass = classes.find(c => c.name === className);
+
                     if(targetClass) {
                       let bg = targetClass.color;
                       let textClr = getContrastYIQ(bg);
                       customStyle = `style="background-color: ${bg}; color: ${textClr};"`;
+                    } else {
+                      // 班级已经从“班级管理”中删除，但历史排课记录仍然存在。
+                      // 不删除 scheduleData，只把它作为历史排课用灰色显示。
+                      isHistoricalClass = true;
                     }
 
                     let targetMilestone = dayMilestones.find(m => m.className === className);
@@ -3091,7 +3388,9 @@
                   }
 
                   let titleText = isOccupied ? `${p}: ${className}` : `${p}: 空闲`;
-                  html += `<div class="period-slot ${isOccupied ? 'occupied' : ''}" ${customStyle}
+                  let slotClass = `period-slot ${isOccupied ? 'occupied' : ''} ${isHistoricalClass ? 'historical-occupied' : ''}`;
+                  html += `<div class="${slotClass}" ${customStyle}
+                               title="${isOccupied ? `历史/当前班级：${className}` : ''}"
                                onclick="${isUserAdmin ? `openModalWs('${slotKey}', '${className}', '${item.dateKey}', '教室 ${room} | ${item.dateKey} ${p}')` : `alert('只读模式下不可直接排课，请先在右上角解锁管理员权限！')`}">
                             <span style="overflow:hidden; text-overflow:ellipsis;">${titleText}</span>
                             ${badgeHtml}
@@ -3115,8 +3414,21 @@
       activeCellKey = key;
       activeDateKey = dateKey;
       document.getElementById('modal-time-title').innerText = title;
-      document.getElementById('modal-class-select').value = className;
       document.getElementById('modal-date-display').innerText = dateKey;
+
+      const classSelect = document.getElementById('modal-class-select');
+
+      // 如果班级已经被删除，但历史排课还存在，则临时补回一个“已删除班级”选项。
+      // 这样点开旧排课时，仍然可以看到完整的班级名称，也不会因为下拉框没有该班级而显示为空。
+      const existingOption = Array.from(classSelect.options).find(opt => opt.value === className);
+
+      if (className && !existingOption) {
+        const historicalOption = new Option(`🗂️ ${className}（已删除班级）`, className);
+        historicalOption.dataset.historical = 'true';
+        classSelect.appendChild(historicalOption);
+      }
+
+      classSelect.value = className;
 
       const quickArea = document.getElementById('quick-milestone-area');
       quickArea.style.display = className ? 'block' : 'none';
