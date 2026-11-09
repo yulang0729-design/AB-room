@@ -1978,6 +1978,7 @@
           <button onclick="prevMonthTeacher()">◀ 上个月</button>
           <input type="month" id="monthPickerTeacher" onchange="changeMonthTeacher(this.value)">
           <button onclick="nextMonthTeacher()">下个月 ▶</button>
+          <button class="primary" id="btnExportTeacherMonthImage" onclick="exportTeacherMonthImage()">🖼️ 导出当月课表图片</button>
           
           <!-- 日历缩放控制器 -->
           <div class="zoom-control-box" title="调节教师日历视图整体比例">
@@ -2294,7 +2295,8 @@
     </div>
   </div>
 
-  <script>
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+<script>
     // -------------------------------------------------------------
     // 全局页面切换控制
     // -------------------------------------------------------------
@@ -4634,6 +4636,129 @@ function renderTabsTeacher() {
 
     function closeModalTeacher(id) {
       document.getElementById(id).style.display = 'none';
+    }
+
+    // 导出当前教师当月课表为高清长图（不改变页面当前缩放比例）
+    async function exportTeacherMonthImage() {
+      const teacher = getTeacherObj();
+      const source = document.getElementById('calendarContainerTeacher');
+      const btn = document.getElementById('btnExportTeacherMonthImage');
+      if (!teacher || !source || !source.querySelector('table')) {
+        return alert('当前没有可导出的课表内容。');
+      }
+      if (typeof html2canvas !== 'function') {
+        return alert('图片导出组件加载失败，请检查网络后刷新页面重试。');
+      }
+
+      const originalText = btn ? btn.innerText : '';
+      if (btn) {
+        btn.disabled = true;
+        btn.innerText = '⏳ 正在生成图片...';
+      }
+
+      let exportWrap;
+      try {
+        const month = teacherAppData.currentMonth || '';
+        const [year, monthNum] = month.split('-');
+        exportWrap = document.createElement('div');
+        exportWrap.style.cssText = [
+          'position:absolute', 'left:-20000px', 'top:0', 'width:1600px',
+          'padding:36px', 'background:#ffffff', 'color:#1e293b',
+          'box-sizing:border-box', 'z-index:-1'
+        ].join(';');
+
+        const title = document.createElement('div');
+        title.style.cssText = 'font-size:30px;font-weight:800;text-align:center;color:#1e293b;margin-bottom:8px;';
+        title.textContent = `${teacher.name}｜${year}年${Number(monthNum)}月课表`;
+
+        const subtitle = document.createElement('div');
+        subtitle.style.cssText = 'font-size:14px;text-align:center;color:#64748b;margin-bottom:20px;';
+        subtitle.textContent = 'ZERO日本語・日本留学  ·  教师月度排课表';
+
+        // 导出图片时同步展示当月已排课时等统计信息
+        const stats = document.createElement('div');
+        stats.style.cssText = [
+          'display:flex', 'justify-content:center', 'align-items:stretch',
+          'gap:16px', 'margin:0 0 24px', 'padding:16px 20px',
+          'background:#f8fafc', 'border:1px solid #e2e8f0',
+          'border-radius:12px', 'text-align:center'
+        ].join(';');
+
+        const bookedHours = document.getElementById('statBookedHours')?.textContent?.trim() || '0';
+        const totalHours = document.getElementById('statTotalHours')?.textContent?.trim() || '0';
+        const rate = document.getElementById('statRate')?.textContent?.trim() || '0%';
+
+        const createStatItem = (label, value, unit, emphasize = false) => {
+          const item = document.createElement('div');
+          item.style.cssText = 'flex:1;min-width:0;padding:4px 12px;';
+          const valueEl = document.createElement('div');
+          valueEl.style.cssText = `font-size:${emphasize ? 30 : 24}px;font-weight:800;color:${emphasize ? '#4f46e5' : '#334155'};line-height:1.25;`;
+          valueEl.textContent = `${value}${unit}`;
+          const labelEl = document.createElement('div');
+          labelEl.style.cssText = 'margin-top:6px;font-size:13px;color:#64748b;font-weight:600;';
+          labelEl.textContent = label;
+          item.append(valueEl, labelEl);
+          return item;
+        };
+
+        stats.append(
+          createStatItem('本月已排课时', bookedHours, ' h', true),
+          createStatItem('应出勤工时', totalHours, ' h'),
+          createStatItem('排课率', rate, '', true)
+        );
+
+        const table = source.querySelector('table').cloneNode(true);
+        table.style.width = '100%';
+        table.style.minWidth = '0';
+        table.style.tableLayout = 'fixed';
+        table.querySelectorAll('.date-header-btn').forEach(el => el.remove());
+        table.querySelectorAll('[onclick]').forEach(el => el.removeAttribute('onclick'));
+        table.querySelectorAll('.course-block').forEach(el => {
+          el.classList.remove('focused-highlight', 'dimmed-out');
+          el.style.opacity = '1';
+          el.style.filter = 'none';
+        });
+
+        const footer = document.createElement('div');
+        footer.style.cssText = 'margin-top:18px;text-align:right;color:#94a3b8;font-size:12px;';
+        footer.textContent = `导出月份：${month}  |  ZERO日本語・日本留学`;
+
+        exportWrap.append(title, subtitle, stats, table, footer);
+        document.getElementById('view-teacher').appendChild(exportWrap);
+
+        // 等待字体与布局完成，避免截图时文字错位
+        if (document.fonts && document.fonts.ready) await document.fonts.ready;
+        await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+
+        const canvas = await html2canvas(exportWrap, {
+          backgroundColor: '#ffffff',
+          scale: 2,
+          useCORS: true,
+          logging: false,
+          width: 1600,
+          windowWidth: 1600
+        });
+
+        const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+        if (!blob) throw new Error('图片生成失败');
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `ZERO_${teacher.name}_${month}_课表.png`;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 1500);
+      } catch (err) {
+        console.error('exportTeacherMonthImage error:', err);
+        alert('课表图片导出失败，请稍后重试。' + (err && err.message ? '\\n' + err.message : ''));
+      } finally {
+        if (exportWrap && exportWrap.parentNode) exportWrap.parentNode.removeChild(exportWrap);
+        if (btn) {
+          btn.disabled = false;
+          btn.innerText = originalText || '🖼️ 导出当月课表图片';
+        }
+      }
     }
 
     function exportDataTeacher() {
